@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pedido de Piezas Rectangulares | UNE 100716</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+:root { --blue: #1a4f8a; --blue-light: #e8f0fa; }
+body { background: #f4f6f9; font-family: 'Segoe UI', sans-serif; }
+
+.app-header {
+  background: var(--blue);
+  color: white;
+  padding: 1.1rem 0 1rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+.app-header h1 { font-size: 1.4rem; margin: 0; font-weight: 700; }
+.app-header p  { font-size: .82rem; margin: .15rem 0 0; opacity: .75; }
+
+.card { border: none; border-radius: 10px; box-shadow: 0 2px 14px rgba(0,0,0,.07); }
+
+.img-wrap {
+  background: #eef1f6;
+  border-radius: 8px;
+  min-height: 170px;
+  display: flex; align-items: center; justify-content: center;
+  padding: .75rem;
+}
+.img-wrap svg { max-width: 100%; max-height: 160px; }
+
+.m2-box {
+  background: var(--blue-light);
+  border: 2px solid var(--blue);
+  border-radius: 8px;
+  padding: .8rem 1rem;
+  text-align: center;
+}
+.m2-box .val { font-size: 2.1rem; font-weight: 700; color: var(--blue); line-height: 1; }
+.m2-box .lbl { font-size: .72rem; text-transform: uppercase; color: #666; letter-spacing: .05em; }
+
+.formula-chip {
+  font-family: 'Courier New', monospace;
+  font-size: .78rem;
+  background: #f0f2f5;
+  border: 1px solid #cdd0d5;
+  padding: .2rem .6rem;
+  border-radius: 20px;
+  color: #444;
+  display: inline-block;
+}
+
+.table thead th { background: var(--blue); color: #fff; white-space: nowrap; font-weight: 600; }
+.table tfoot td { background: var(--blue-light); font-weight: 700; }
+.table td, .table th { vertical-align: middle; }
+
+.dim-pill {
+  display: inline-block;
+  background: #e9ecef;
+  border-radius: 4px;
+  padding: .1rem .4rem;
+  font-size: .78rem;
+  margin: .1rem .1rem;
+  white-space: nowrap;
+}
+
+@media print {
+  body { background: #fff; }
+  .no-print { display: none !important; }
+  #form-card { display: none !important; }
+  .app-header { print-color-adjust: exact; -webkit-print-color-adjust: exact; background: var(--blue) !important; }
+  .table thead th { print-color-adjust: exact; -webkit-print-color-adjust: exact; background: var(--blue) !important; color: #fff !important; }
+  .table tfoot td { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .card { box-shadow: none !important; border: 1px solid #ccc !important; }
+  #table-section { display: block !important; }
+  .print-date { display: block !important; }
+}
+.print-date { display: none; font-size: .8rem; color: #666; margin-bottom: .5rem; }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="container">
+    <h1>Calculadora de Piezas para Conductos Rectangulares</h1>
+    <p>Según norma UNE 100716 · Chapa galvanizada</p>
+  </div>
+</div>
+
+<div class="container pb-5">
+
+  <!-- FORMULARIO -->
+  <div class="card mb-4" id="form-card">
+    <div class="card-body p-4">
+
+      <div class="row g-3 align-items-center mb-3">
+        <div class="col-md-5">
+          <label class="form-label fw-semibold mb-1">Tipo de producto</label>
+          <select class="form-select form-select-lg" id="product-select">
+            <option value="">— Selecciona un producto —</option>
+          </select>
+        </div>
+        <div class="col-md-7 pt-3">
+          <span id="formula-chip" class="formula-chip d-none"></span>
+        </div>
+      </div>
+
+      <div id="product-section" class="d-none">
+        <hr class="mb-4">
+        <div class="row g-4">
+
+          <!-- imagen -->
+          <div class="col-md-3">
+            <div class="img-wrap" id="product-img-wrap"></div>
+            <div id="m2-box" class="m2-box mt-3">
+              <div class="lbl">m² calculados</div>
+              <div class="val" id="m2-val">0.000</div>
+              <div style="font-size:.75rem;color:#888;margin-top:.15rem;">m²</div>
+            </div>
+          </div>
+
+          <!-- campos -->
+          <div class="col-md-9">
+            <div id="dynamic-fields" class="row g-2"></div>
+            <div class="mt-4">
+              <button class="btn btn-primary btn-lg px-5" id="add-btn" disabled>
+                + Añadir al pedido
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLA DE PEDIDO -->
+  <div id="table-section" class="d-none">
+    <div class="d-flex justify-content-between align-items-center mb-2 no-print">
+      <h5 class="mb-0 fw-bold">Pedido</h5>
+      <div>
+        <button class="btn btn-outline-primary me-2" id="new-product-btn">+ Añadir producto</button>
+        <button class="btn btn-success" id="export-btn">↓ Finalizar pedido (PDF)</button>
+      </div>
+    </div>
+
+    <div class="print-date" id="print-date"></div>
+
+    <div class="card">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-bordered table-hover mb-0" id="order-table">
+            <thead>
+              <tr>
+                <th style="width:44px">Nº</th>
+                <th>Tipo de producto</th>
+                <th>Dimensiones</th>
+                <th style="width:95px">Ud.</th>
+                <th style="width:110px">Espesor (mm)</th>
+                <th style="width:150px">Tipo de unión</th>
+                <th style="width:80px">m²/ud.</th>
+                <th style="width:80px">m² total</th>
+                <th class="no-print" style="width:50px"></th>
+              </tr>
+            </thead>
+            <tbody id="order-tbody"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="7" class="text-end pe-3">TOTAL m²</td>
+                <td id="total-m2-cell">0.000</td>
+                <td class="no-print"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- estado vacío -->
+  <div id="empty-hint" class="text-center py-5 text-muted no-print">
+    <div style="font-size:3rem;opacity:.4">📐</div>
+    <p class="mb-0">Selecciona un producto para empezar</p>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// ─── CONSTANTES ────────────────────────────────────────────────────────────
+const UT_MAP = { pi20: 0.040, pi30: 0.060, vaina: 0.100, otro: 0 };
+
+const UT_OPTS = [
+  { v: 'pi20',  l: 'Perfil integral 20' },
+  { v: 'pi30',  l: 'Perfil integral 30' },
+  { v: 'vaina', l: 'Vaina' },
+  { v: 'otro',  l: 'Otro' },
+];
+const ESP_OPTS = [
+  { v: '0.6', l: '0.6' },
+  { v: '0.8', l: '0.8' },
+  { v: '1.0', l: '1.0' },
+  { v: '1.2', l: '1.2' },
+];
+
+const n  = (id, lbl) => ({ id, label: `${lbl} (mm)`, type: 'num' });
+const ut = ()       => ({ id: 'ut',      label: 'Tipo de unión (UT)', type: 'sel', opts: UT_OPTS,  def: 'pi20' });
+const ep = ()       => ({ id: 'espesor', label: 'Espesor (mm)',       type: 'sel', opts: ESP_OPTS, def: '0.8'  });
+
+const mm  = v => (parseFloat(v) || 0) / 1000;
+const gut = v => UT_MAP[v.ut] || 0;
+
+// ─── DEFINICIÓN DE PRODUCTOS ───────────────────────────────────────────────
+const PRODUCTS = [
+  {
+    id: 'conducto', name: 'Conducto',
+    formula: 'm²=(2(A+B))×(L+UT)',
+    fields: [n('A','A'), n('B','B'), n('L','L'), ut(), ep()],
+    calc: v => (2*(mm(v.A)+mm(v.B))) * (mm(v.L)+gut(v)),
+    dims: ['A','B','L'],
+  },
+  {
+    id: 'codo', name: 'Codo',
+    formula: 'm²=(2(A+B))×(L+UT)',
+    fields: [n('A','A'), n('B','B'), n('L','L'), ut(), ep()],
+    calc: v => (2*(mm(v.A)+mm(v.B))) * (mm(v.L)+gut(v)),
+    dims: ['A','B','L'],
+  },
+  {
+    id: 'codo_recto', name: 'Codo recto',
+    formula: 'm²=(2(A+B))×(C+D+UT)',
+    fields: [n('A','A'), n('B','B'), n('C','C'), n('D','D'), ut(), ep()],
+    calc: v => (2*(mm(v.A)+mm(v.B))) * (mm(v.C)+mm(v.D)+gut(v)),
+    dims: ['A','B','C','D'],
+  },
+  {
+    id: 'codo_reducido', name: 'Codo reducido',
+    formula: 'm²=(A1+A2+B1+B2)×(L+UT)',
+    fields: [n('A1','A1'), n('A2','A2'), n('B1','B1'), n('B2','B2'), n('L','L'), ut(), ep()],
+    calc: v => (mm(v.A1)+mm(v.A2)+mm(v.B1)+mm(v.B2)) * (mm(v.L)+gut(v)),
+    dims: ['A1','A2','B1','B2','L'],
+  },
+  {
+    id: 'reduccion', name: 'Reducción',
+    formula: 'm²=(A1+A2+B1+B2)×(L+UT)',
+    fields: [n('A1','A1'), n('A2','A2'), n('B1','B1'), n('B2','B2'), n('L','L'), ut(), ep()],
+    calc: v => (mm(v.A1)+mm(v.A2)+mm(v.B1)+mm(v.B2)) * (mm(v.L)+gut(v)),
+    dims: ['A1','A2','B1','B2','L'],
+  },
+  {
+    id: 'tolva', name: 'Tolva',
+    formula: 'm²=(C×2)×2×L   C=max(A,B,Ø,250mm)',
+    fields: [n('A','A'), n('B','B'), n('diam','Ø'), n('L','L'), ep()],
+    calc: v => { const C=Math.max(mm(v.A),mm(v.B),mm(v.diam),.250); return C*2*2*mm(v.L); },
+    dims: ['A','B','diam','L'], noUT: true,
+  },
+  {
+    id: 'tolva_exc', name: 'Tolva excéntrica',
+    formula: 'm²=(C×2)×2×L   C=max(A,B,Ø,250mm)',
+    fields: [n('A','A'), n('B','B'), n('diam','Ø'), n('L','L'), ep()],
+    calc: v => { const C=Math.max(mm(v.A),mm(v.B),mm(v.diam),.250); return C*2*2*mm(v.L); },
+    dims: ['A','B','diam','L'], noUT: true,
+  },
+  {
+    id: 'tolva_desv', name: 'Tolva con desvío',
+    formula: 'm²=(C×2)×2×L   C=max(A,B,Ø,250mm)',
+    fields: [n('A','A'), n('B','B'), n('diam','Ø'), n('L','L'), ep()],
+    calc: v => { const C=Math.max(mm(v.A),mm(v.B),mm(v.diam),.250); return C*2*2*mm(v.L); },
+    dims: ['A','B','diam','L'], noUT: true,
+  },
+  {
+    id: 'zapato', name: 'Zapato',
+    formula: 'm²=(2(A+B))×(L+UT)',
+    fields: [n('A','A'), n('B','B'), n('L','L'), ut(), ep()],
+    calc: v => (2*(mm(v.A)+mm(v.B))) * (mm(v.L)+gut(v)),
+    dims: ['A','B','L'],
+  },
+  {
+    id: 'cuello', name: 'Cuello',
+    formula: 'm²=(2(A+B))×(L+UT)',
+    fields: [n('A','A'), n('B','B'), n('L','L'), ut(), ep()],
+    calc: v => (2*(mm(v.A)+mm(v.B))) * (mm(v.L)+gut(v)),
+    dims: ['A','B','L'],
+  },
+  {
+    id: 'cuello_tele', name: 'Cuello telescópico',
+    formula: 'm²=(2(A1+B1))×L1+(2(A2+B2))×L2+UT',
+    fields: [n('A1','A1'), n('B1','B1'), n('L1','L1'), n('A2','A2'), n('B2','B2'), n('L2','L2'), ut(), ep()],
+    calc: v => (2*(mm(v.A1)+mm(v.B1)))*mm(v.L1) + (2*(mm(v.A2)+mm(v.B2)))*mm(v.L2) + gut(v),
+    dims: ['A1','B1','L1','A2','B2','L2'],
+  },
+  {
+    id: 'vierteaguas', name: 'Vierteaguas',
+    formula: 'm²=(A+B)×3',
+    fields: [n('A','A'), n('B','B'), ep()],
+    calc: v => (mm(v.A)+mm(v.B))*3,
+    dims: ['A','B'], noUT: true,
+  },
+  {
+    id: 'desvio', name: 'Desvío',
+    formula: 'm²=(2(A+B))×(L+D+UT)',
+    fields: [n('A','A'), n('B','B'), n('D','D'), n('L','L'), ut(), ep()],
+    calc: v => (2*(mm(v.A)+mm(v.B))) * (mm(v.L)+mm(v.D)+gut(v)),
+    dims: ['A','B','D','L'],
+  },
+  {
+    id: 'pantalon', name: 'Pantalón',
+    formula: 'm²=(2(A+B))×(L+UT)',
+    fields: [n('A','A'), n('B','B'), n('L','L'), ut(), ep()],
+    calc: v => (2*(mm(v.A)+mm(v.B))) * (mm(v.L)+gut(v)),
+    dims: ['A','B','L'],
+  },
+  {
+    id: 'tapa', name: 'Tapa',
+    formula: 'm²=(A+B)×0.8',
+    fields: [n('A','A'), n('B','B'), ep()],
+    calc: v => (mm(v.A)+mm(v.B))*0.8,
+    dims: ['A','B'], noUT: true,
+  },
+  {
+    id: 'deflector', name: 'Deflector',
+    formula: 'm²=A×L',
+    fields: [n('A','A'), n('L','L'), ep()],
+    calc: v => mm(v.A)*mm(v.L),
+    dims: ['A','L'], noUT: true,
+  },
+  {
+    id: 'bifurcacion', name: 'Bifurcación',
+    formula: 'm²=Σ(2(Ai+Bi))×(Li+UT)',
+    fields: [n('A1','A1'),n('B1','B1'),n('L1','L1'), n('A2','A2'),n('B2','B2'),n('L2','L2'), ut(), ep()],
+    calc: v => (2*(mm(v.A1)+mm(v.B1)))*(mm(v.L1)+gut(v)) + (2*(mm(v.A2)+mm(v.B2)))*(mm(v.L2)+gut(v)),
+    dims: ['A1','B1','L1','A2','B2','L2'],
+  },
+  {
+    id: 'bifurcacion_doble', name: 'Bifurcación doble',
+    formula: 'm²=Σ(2(Ai+Bi))×(Li+UT)',
+    fields: [n('A1','A1'),n('B1','B1'),n('L1','L1'), n('A2','A2'),n('B2','B2'),n('L2','L2'), n('A3','A3'),n('B3','B3'),n('L3','L3'), ut(), ep()],
+    calc: v => (2*(mm(v.A1)+mm(v.B1)))*(mm(v.L1)+gut(v)) + (2*(mm(v.A2)+mm(v.B2)))*(mm(v.L2)+gut(v)) + (2*(mm(v.A3)+mm(v.B3)))*(mm(v.L3)+gut(v)),
+    dims: ['A1','B1','L1','A2','B2','L2','A3','B3','L3'],
+  },
+  {
+    id: 'bifurcacion_triple', name: 'Bifurcación triple',
+    formula: 'm²=Σ(2(Ai+Bi))×(Li+UT)',
+    fields: [n('A1','A1'),n('B1','B1'),n('L1','L1'), n('A2','A2'),n('B2','B2'),n('L2','L2'), n('A3','A3'),n('B3','B3'),n('L3','L3'), n('A4','A4'),n('B4','B4'),n('L4','L4'), ut(), ep()],
+    calc: v => (2*(mm(v.A1)+mm(v.B1)))*(mm(v.L1)+gut(v)) + (2*(mm(v.A2)+mm(v.B2)))*(mm(v.L2)+gut(v)) + (2*(mm(v.A3)+mm(v.B3)))*(mm(v.L3)+gut(v)) + (2*(mm(v.A4)+mm(v.B4)))*(mm(v.L4)+gut(v)),
+    dims: ['A1','B1','L1','A2','B2','L2','A3','B3','L3','A4','B4','L4'],
+  },
+];
+
+// ─── SVG SCHEMÁTICOS ───────────────────────────────────────────────────────
+// Colores: fill claro #c8d8ec, fill oscuro #a0b8d0, trazo #2a4a7a
+const S = {
+  conducto: `<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
+    <rect x="10" y="40" width="180" height="55" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2.5"/>
+    <rect x="10" y="40" width="180" height="14" fill="#a0b8d0" stroke="#2a4a7a" stroke-width="1.5"/>
+    <line x1="15" y1="105" x2="185" y2="105" stroke="#555" stroke-width="1"/>
+    <text x="100" y="73" text-anchor="middle" font-size="11" fill="#1a3a6a" font-family="sans-serif" font-weight="600">L →</text>
+  </svg>`,
+
+  codo: `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <path d="M15,15 L75,15 L75,20 Q125,20 125,70 L125,185 L75,185 L75,70 Q70,65 15,65 Z" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2.5"/>
+    <path d="M20,15 L70,15 L70,20 Q120,20 120,70 L120,185" fill="none" stroke="#a0b8d0" stroke-width="1.5"/>
+    <line x1="75" y1="15" x2="75" y2="20" stroke="#2a4a7a" stroke-width="1"/>
+  </svg>`,
+
+  codo_recto: `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <path d="M15,15 L75,15 L75,65 L175,65 L175,120 L125,120 L125,65 L15,65 Z" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2.5"/>
+    <rect x="15" y="15" width="60" height="14" fill="#a0b8d0" stroke="#2a4a7a" stroke-width="1"/>
+    <rect x="125" y="65" width="50" height="14" fill="#a0b8d0" stroke="#2a4a7a" stroke-width="1"/>
+  </svg>`,
+
+  codo_reducido: `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <path d="M10,10 L90,10 L90,15 Q135,15 135,60 L135,190 L100,190 L100,60 Q95,55 10,55 Z" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2.5"/>
+    <path d="M10,10 L90,10" stroke="#a0b8d0" stroke-width="6" fill="none"/>
+    <path d="M100,190 L135,190" stroke="#a0b8d0" stroke-width="4" fill="none"/>
+    <text x="20" y="40" font-size="9" fill="#2a4a7a" font-family="sans-serif">A1</text>
+    <text x="110" y="175" font-size="9" fill="#2a4a7a" font-family="sans-serif">A2</text>
+  </svg>`,
+
+  reduccion: `<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="10,20 190,45 190,85 10,100" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2.5"/>
+    <polygon points="10,20 190,45 190,52 10,28" fill="#a0b8d0" stroke="#2a4a7a" stroke-width="1"/>
+    <text x="20" y="66" font-size="9" fill="#1a3a6a" font-family="sans-serif">A1×B1</text>
+    <text x="140" y="68" font-size="9" fill="#1a3a6a" font-family="sans-serif">A2×B2</text>
+  </svg>`,
+
+  tolva: `<svg viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="15,15 185,15 155,105 45,105" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2.5"/>
+    <polygon points="15,15 185,15 185,28 15,28" fill="#a0b8d0" stroke="#2a4a7a" stroke-width="1"/>
+    <ellipse cx="100" cy="115" rx="35" ry="12" fill="#dde8f4" stroke="#2a4a7a" stroke-width="2"/>
+    <line x1="65" y1="105" x2="65" y2="115" stroke="#2a4a7a" stroke-width="2"/>
+    <line x1="135" y1="105" x2="135" y2="115" stroke="#2a4a7a" stroke-width="2"/>
+  </svg>`,
+
+  tolva_exc: `<svg viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="15,15 185,15 175,105 75,105" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2.5"/>
+    <polygon points="15,15 185,15 185,28 15,28" fill="#a0b8d0" stroke="#2a4a7a" stroke-width="1"/>
+    <ellipse cx="125" cy="115" rx="32" ry="11" fill="#dde8f4" stroke="#2a4a7a" stroke-width="2"/>
+    <line x1="75" y1="105" x2="93" y2="115" stroke="#2a4a7a" stroke-width="2"/>
+    <line x1="175" y1="105" x2="157" y2="115" stroke="#2a4a7a" stroke-width="2"/>
+  </svg>`,
+
+  tolva_desv: `<svg viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="15,15 185,15 145,105 35,105" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2.5"/>
+    <polygon points="15,15 185,15 185,28 15,28" fill="#a0b8d0" stroke="#2a4a7a" stroke-width="1"/>
+    <ellipse cx="90" cy="120" rx="33" ry="11" fill="#dde8f4" stroke="#2a4a7a" stroke-width="2"/>
+    <line x1="35" y1="105" x2="57" y2="120" stroke="#2a4a7a" stroke-width="2"/>
+    <line x1="145" y1="105" x2="123" y2="120" stroke="#2a4a7a" stroke-width="2"/>
+  </svg>`,
+
+  zapato: `<svg viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg">
+    <path d="M10,15 L90,15 L90,85 L170,120 L170,150 L130,150 L70,120 L70,65 L10,65 Z" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2.5"/>
+    <rect x="10" y="15" width="80" height="14" fill="#a0b8d0" stroke="none"/>
+    <line x1="10" y1="15" x2="10" y2="65" stroke="#2a4a7a" stroke-width="2"/>
+    <line x1="90" y1="15" x2="90" y2="65" stroke="#2a4a7a" stroke-width="2"/>
+  </svg>`,
+
+  cuello: `<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
+    <rect x="55" y="10" width="90" height="100" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2.5"/>
+    <rect x="55" y="10" width="90" height="14" fill="#a0b8d0" stroke="#2a4a7a" stroke-width="1"/>
+    <text x="100" y="65" text-anchor="middle" font-size="10" fill="#1a3a6a" font-family="sans-serif">A × B</text>
+  </svg>`,
+
+  cuello_tele: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg">
+    <rect x="20" y="10" width="160" height="60" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2.5"/>
+    <rect x="20" y="10" width="160" height="12" fill="#a0b8d0" stroke="#2a4a7a" stroke-width="1"/>
+    <rect x="45" y="70" width="110" height="55" fill="#dde8f4" stroke="#2a4a7a" stroke-width="2" stroke-dasharray="5,3"/>
+    <rect x="45" y="70" width="110" height="11" fill="#b8cce0" stroke="#2a4a7a" stroke-width="1"/>
+    <text x="100" y="45" text-anchor="middle" font-size="9" fill="#1a3a6a" font-family="sans-serif">A1 × B1</text>
+    <text x="100" y="105" text-anchor="middle" font-size="9" fill="#1a3a6a" font-family="sans-serif">A2 × B2</text>
+  </svg>`,
+
+  vierteaguas: `<svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg">
+    <rect x="10" y="22" width="180" height="30" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2.5"/>
+    <rect x="10" y="22" width="180" height="10" fill="#a0b8d0" stroke="#2a4a7a" stroke-width="1"/>
+  </svg>`,
+
+  desvio: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg">
+    <rect x="10" y="10" width="100" height="45" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2"/>
+    <polygon points="110,10 180,55 180,100 110,55" fill="#b8cce0" stroke="#2a4a7a" stroke-width="2"/>
+    <rect x="80" y="55" width="100" height="45" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2"/>
+    <rect x="10" y="10" width="100" height="11" fill="#a0b8d0"/>
+    <rect x="80" y="55" width="100" height="11" fill="#a0b8d0"/>
+  </svg>`,
+
+  pantalon: `<svg viewBox="0 0 200 180" xmlns="http://www.w3.org/2000/svg">
+    <rect x="70" y="10" width="60" height="60" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2.5"/>
+    <polygon points="70,70 100,120 40,120 10,170 80,170 80,120 120,120 120,170 190,170 160,120 100,120 130,70" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2"/>
+    <rect x="70" y="10" width="60" height="13" fill="#a0b8d0"/>
+  </svg>`,
+
+  tapa: `<svg viewBox="0 0 200 130" xmlns="http://www.w3.org/2000/svg">
+    <rect x="15" y="20" width="170" height="90" rx="3" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2.5"/>
+    <rect x="28" y="33" width="144" height="64" rx="2" fill="#eef3f9" stroke="#2a4a7a" stroke-width="1.5"/>
+    <text x="100" y="70" text-anchor="middle" font-size="10" fill="#2a4a7a" font-family="sans-serif">A × B</text>
+  </svg>`,
+
+  deflector: `<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
+    <rect x="10" y="15" width="180" height="90" rx="2" fill="#eef3f9" stroke="#2a4a7a" stroke-width="2" stroke-dasharray="6,3"/>
+    <polygon points="55,20 145,20 145,100 55,100" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2.5" transform="rotate(-15,100,60)"/>
+  </svg>`,
+
+  bifurcacion: `<svg viewBox="0 0 200 180" xmlns="http://www.w3.org/2000/svg">
+    <rect x="70" y="10" width="60" height="60" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2.5"/>
+    <rect x="10" y="110" width="75" height="60" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2"/>
+    <rect x="115" y="110" width="75" height="60" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2"/>
+    <polygon points="70,70 100,110 130,70" fill="#b8cce0" stroke="#2a4a7a" stroke-width="1.5"/>
+    <rect x="70" y="10" width="60" height="13" fill="#a0b8d0"/>
+  </svg>`,
+
+  bifurcacion_doble: `<svg viewBox="0 0 240 180" xmlns="http://www.w3.org/2000/svg">
+    <rect x="90" y="10" width="60" height="55" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2"/>
+    <rect x="10" y="115" width="60" height="55" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2"/>
+    <rect x="90" y="115" width="60" height="55" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2"/>
+    <rect x="170" y="115" width="60" height="55" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2"/>
+    <line x1="120" y1="65" x2="40"  y2="115" stroke="#2a4a7a" stroke-width="2"/>
+    <line x1="120" y1="65" x2="120" y2="115" stroke="#2a4a7a" stroke-width="2"/>
+    <line x1="120" y1="65" x2="200" y2="115" stroke="#2a4a7a" stroke-width="2"/>
+    <rect x="90" y="10" width="60" height="12" fill="#a0b8d0"/>
+  </svg>`,
+
+  bifurcacion_triple: `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <rect x="75" y="10"  width="50" height="45" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2"/>
+    <rect x="75" y="145" width="50" height="45" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2"/>
+    <rect x="10"  y="75" width="45" height="50" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2"/>
+    <rect x="145" y="75" width="45" height="50" fill="#c8d8ec" stroke="#2a4a7a" stroke-width="2"/>
+    <rect x="75" y="75" width="50" height="50" fill="#dde8f4" stroke="#2a4a7a" stroke-width="2"/>
+    <line x1="75" y1="75" x2="55" y2="75" stroke="#2a4a7a" stroke-width="2"/>
+    <line x1="75" y1="125" x2="55" y2="125" stroke="#2a4a7a" stroke-width="2"/>
+    <line x1="125" y1="75" x2="145" y2="75" stroke="#2a4a7a" stroke-width="2"/>
+    <line x1="125" y1="125" x2="145" y2="125" stroke="#2a4a7a" stroke-width="2"/>
+    <line x1="75" y1="75" x2="75" y2="55" stroke="#2a4a7a" stroke-width="2"/>
+    <line x1="125" y1="75" x2="125" y2="55" stroke="#2a4a7a" stroke-width="2"/>
+    <line x1="75" y1="125" x2="75" y2="145" stroke="#2a4a7a" stroke-width="2"/>
+    <line x1="125" y1="125" x2="125" y2="145" stroke="#2a4a7a" stroke-width="2"/>
+  </svg>`,
+};
+
+// ─── ESTADO ────────────────────────────────────────────────────────────────
+let order = [];
+let currentProduct = null;
+
+// ─── INICIALIZAR SELECTOR ──────────────────────────────────────────────────
+const sel = document.getElementById('product-select');
+PRODUCTS.forEach(p => {
+  const o = document.createElement('option');
+  o.value = p.id;
+  o.textContent = p.name;
+  sel.appendChild(o);
+});
+
+// ─── CAMBIO DE PRODUCTO ────────────────────────────────────────────────────
+sel.addEventListener('change', () => {
+  const pid = sel.value;
+  if (!pid) {
+    document.getElementById('product-section').classList.add('d-none');
+    document.getElementById('formula-chip').classList.add('d-none');
+    currentProduct = null;
+    return;
+  }
+  currentProduct = PRODUCTS.find(p => p.id === pid);
+  renderForm(currentProduct);
+  document.getElementById('formula-chip').textContent = currentProduct.formula;
+  document.getElementById('formula-chip').classList.remove('d-none');
+  document.getElementById('product-section').classList.remove('d-none');
+  document.getElementById('empty-hint').classList.add('d-none');
+  updateM2();
+});
+
+// ─── RENDERIZAR FORMULARIO ─────────────────────────────────────────────────
+function renderForm(product) {
+  // imagen
+  const imgKey = product.id;
+  document.getElementById('product-img-wrap').innerHTML = S[imgKey] ||
+    `<div class="text-center text-muted p-3"><div style="font-size:2rem">📦</div><small>${product.name}</small></div>`;
+
+  // campos
+  const container = document.getElementById('dynamic-fields');
+  container.innerHTML = '';
+
+  product.fields.forEach(f => {
+    const col = document.createElement('div');
+    col.className = f.type === 'sel' ? 'col-md-6' : 'col-md-4';
+
+    if (f.type === 'num') {
+      col.innerHTML = `
+        <label class="form-label mb-1 fw-semibold" style="font-size:.85rem">${f.label}</label>
+        <input type="number" class="form-control" id="field_${f.id}" min="1" placeholder="mm" autocomplete="off">`;
+    } else {
+      const optHtml = f.opts.map(o =>
+        `<option value="${o.v}" ${o.v === f.def ? 'selected' : ''}>${o.l}</option>`
+      ).join('');
+      col.innerHTML = `
+        <label class="form-label mb-1 fw-semibold" style="font-size:.85rem">${f.label}</label>
+        <select class="form-select" id="field_${f.id}">${optHtml}</select>`;
+    }
+    container.appendChild(col);
+  });
+
+  // añadir campo de cantidad
+  const udCol = document.createElement('div');
+  udCol.className = 'col-md-4';
+  udCol.innerHTML = `
+    <label class="form-label mb-1 fw-semibold" style="font-size:.85rem">Cantidad (ud.)</label>
+    <input type="number" class="form-control" id="field_qty" min="1" value="1">`;
+  container.appendChild(udCol);
+
+  // listeners para actualizar m²
+  container.querySelectorAll('input,select').forEach(el =>
+    el.addEventListener('input', updateM2)
+  );
+}
+
+// ─── OBTENER VALORES DEL FORMULARIO ───────────────────────────────────────
+function getValues() {
+  const vals = {};
+  currentProduct.fields.forEach(f => {
+    const el = document.getElementById(`field_${f.id}`);
+    vals[f.id] = el ? el.value : '';
+  });
+  vals.qty = document.getElementById('field_qty')?.value || 1;
+  return vals;
+}
+
+function allFilled(vals) {
+  return currentProduct.fields
+    .filter(f => f.type === 'num')
+    .every(f => parseFloat(vals[f.id]) > 0);
+}
+
+// ─── ACTUALIZAR m² ─────────────────────────────────────────────────────────
+function updateM2() {
+  if (!currentProduct) return;
+  const vals = getValues();
+  const ok = allFilled(vals);
+  let m2 = 0;
+  if (ok) {
+    try { m2 = currentProduct.calc(vals); } catch(e) { m2 = 0; }
+  }
+  document.getElementById('m2-val').textContent = m2.toFixed(3);
+  document.getElementById('add-btn').disabled = !ok;
+}
+
+// ─── AÑADIR A PEDIDO ──────────────────────────────────────────────────────
+document.getElementById('add-btn').addEventListener('click', () => {
+  const vals = getValues();
+  const m2 = parseFloat(document.getElementById('m2-val').textContent) || 0;
+  const qty = Math.max(1, parseInt(vals.qty) || 1);
+
+  order.push({
+    id: Date.now(),
+    product: currentProduct,
+    vals,
+    m2perUnit: m2,
+    m2total: m2 * qty,
+    qty,
+  });
+
+  renderTable();
+  document.getElementById('table-section').classList.remove('d-none');
+
+  // scroll a tabla
+  document.getElementById('table-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+// ─── RENDERIZAR TABLA ─────────────────────────────────────────────────────
+function renderTable() {
+  const tbody = document.getElementById('order-tbody');
+  tbody.innerHTML = '';
+
+  order.forEach((item, i) => {
+    const tr = document.createElement('tr');
+
+    // dimensiones
+    const dimsHtml = item.product.dims
+      .map(k => `<span class="dim-pill"><b>${k}</b>: ${item.vals[k]}mm</span>`)
+      .join('');
+
+    // unión
+    const utLabel = item.product.noUT ? '—'
+      : (UT_OPTS.find(o => o.v === item.vals.ut)?.l || '—');
+
+    tr.innerHTML = `
+      <td class="text-center fw-bold">${i + 1}</td>
+      <td>${item.product.name}</td>
+      <td>${dimsHtml}</td>
+      <td class="text-center">${item.qty}</td>
+      <td class="text-center">${item.vals.espesor}</td>
+      <td>${utLabel}</td>
+      <td class="text-end">${item.m2perUnit.toFixed(3)}</td>
+      <td class="text-end fw-semibold">${item.m2total.toFixed(3)}</td>
+      <td class="text-center no-print">
+        <button class="btn btn-sm btn-outline-danger btn-delete" data-id="${item.id}" title="Eliminar">✕</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+
+  // total
+  const total = order.reduce((s, it) => s + it.m2total, 0);
+  document.getElementById('total-m2-cell').textContent = total.toFixed(3);
+
+  // listeners eliminar
+  tbody.querySelectorAll('.btn-delete').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = parseInt(btn.dataset.id);
+      order = order.filter(it => it.id !== id);
+      renderTable();
+      if (order.length === 0) {
+        document.getElementById('table-section').classList.add('d-none');
+        document.getElementById('empty-hint').classList.remove('d-none');
+      }
+    });
+  });
+}
+
+// ─── BOTÓN AÑADIR OTRO ────────────────────────────────────────────────────
+document.getElementById('new-product-btn').addEventListener('click', () => {
+  sel.value = '';
+  document.getElementById('product-section').classList.add('d-none');
+  document.getElementById('formula-chip').classList.add('d-none');
+  currentProduct = null;
+  document.getElementById('form-card').scrollIntoView({ behavior: 'smooth' });
+  sel.focus();
+});
+
+// ─── EXPORTAR PDF ─────────────────────────────────────────────────────────
+document.getElementById('export-btn').addEventListener('click', () => {
+  const now = new Date();
+  document.getElementById('print-date').textContent =
+    `Pedido generado el ${now.toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' })} — ${now.toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit'})}`;
+  window.print();
+});
+</script>
+</body>
+</html>
