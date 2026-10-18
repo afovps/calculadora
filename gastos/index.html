@@ -21,6 +21,8 @@
   }
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
+a{color:var(--primary)}
 html,body{margin:0}
 body{background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:90px}
 header{background:var(--primary);color:var(--primary-ink);padding:14px 16px 0;position:sticky;top:0;z-index:5}
@@ -153,6 +155,7 @@ dialog h3{margin:0 0 4px}
   </section>
 
   <section id="exportar">
+    <div class="card" id="modoCard"></div>
     <div class="card">
       <h2>Informe del periodo</h2>
       <p class="muted">Exporta los gastos del periodo seleccionado arriba.</p>
@@ -173,9 +176,16 @@ dialog h3{margin:0 0 4px}
       </div>
     </div>
     <div class="card">
-      <h2>Enviar la app</h2>
-      <p class="muted">Descarga esta aplicación vacía (sin tus datos) en un único archivo .html para enviarla por WhatsApp, email, etc. Se abre en cualquier navegador y funciona sin conexión.</p>
-      <button class="btn" id="btnApp">📦 Descargar app</button>
+      <h2>Compartir la app</h2>
+      <p class="muted">Descarga la aplicación vacía (sin tus datos) para enviarla por WhatsApp, email, USB… Funciona sin internet y sin IA.</p>
+      <ul class="muted" style="padding-left:18px">
+        <li><b>App completa (.zip):</b> incluye el servidor local. Se descomprime y se abre con <b>iniciar-windows</b>, <b>iniciar-mac</b> o <b>iniciar-linux</b> (necesita Node.js).</li>
+        <li><b>Solo la app (.html):</b> un archivo que se abre directamente en el navegador; los datos quedan en ese navegador.</li>
+      </ul>
+      <div class="btns">
+        <button class="btn pri" id="btnZip" hidden>📦 App completa (.zip)</button>
+        <button class="btn" id="btnApp">📄 Solo la app (.html)</button>
+      </div>
     </div>
     <div class="card">
       <h2>Ajustes</h2>
@@ -288,8 +298,18 @@ const CATS_DEF = ['Alimentación', 'Combustible', 'Transporte', 'Vivienda', 'Sum
 
 const S = { gastos: [], fijos: [], ajustes: { nombre: '', presupuesto: 0, categorias: CATS_DEF }, tipo: 'mes', ym: hoy().slice(0, 7) };
 
-// ---------- Almacenamiento (IndexedDB) ----------
-let db = null;
+// ---------- Almacenamiento ----------
+// Si la app se sirve desde server.js, los datos y fotos se guardan en el equipo (carpeta datos/).
+// Si se abre el .html suelto, se guardan en el navegador (IndexedDB).
+let db = null, servidor = null;
+async function api(metodo, ruta, cuerpo) {
+  const r = await fetch('api/' + ruta, {
+    method: metodo, headers: cuerpo ? { 'Content-Type': 'application/json' } : {},
+    body: cuerpo ? JSON.stringify(cuerpo) : undefined
+  });
+  if (!r.ok) throw new Error('servidor respondió ' + r.status);
+  return r.json();
+}
 function openDB() {
   return new Promise((res, rej) => {
     const r = indexedDB.open('control-gastos', 1);
@@ -307,9 +327,14 @@ function req(store, mode, fn) {
   });
 }
 const dbAll = s => req(s, 'readonly', st => st.getAll());
-const dbPut = (s, v) => req(s, 'readwrite', st => st.put(v)).catch(e => toast('Error al guardar: ' + e.message));
-const dbDel = (s, id) => req(s, 'readwrite', st => st.delete(id));
-const dbClear = s => req(s, 'readwrite', st => st.clear());
+// En modo servidor la respuesta trae la URL definitiva de la foto: se copia sobre el objeto en memoria
+const dbPut = (s, v) => (servidor
+  ? api('PUT', s === 'kv' ? 'ajustes' : `${s}/${v.id}`, v).then(r => Object.assign(v, r))
+  : req(s, 'readwrite', st => st.put(v))).catch(e => toast('Error al guardar: ' + e.message));
+const dbDel = (s, id) => (servidor ? api('DELETE', `${s}/${id}`) : req(s, 'readwrite', st => st.delete(id)))
+  .catch(e => toast('Error al borrar: ' + e.message));
+const borrarTodo = () => servidor ? api('DELETE', 'datos')
+  : Promise.all(['gastos', 'fijos'].map(s => req(s, 'readwrite', st => st.clear())));
 
 // ---------- Periodo y cálculos ----------
 function mesesPeriodo() {
@@ -395,7 +420,7 @@ function renderLista() {
       dia = x.fecha;
       html += `<div class="daysep">${new Date(dia + 'T12:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</div>`;
     }
-    const thumb = x.foto ? `<img class="thumb" src="${x.foto}" data-ver="${x.id}" alt="">` : `<div class="thumb">${x.tipo === 'fijo' ? '🔁' : '🧾'}</div>`;
+    const thumb = x.foto ? `<img class="thumb" src="${esc(x.foto)}" data-ver="${x.id}" alt="">` : `<div class="thumb">${x.tipo === 'fijo' ? '🔁' : '🧾'}</div>`;
     html += `<div class="item" data-${x.tipo}="${x.id}">${thumb}<div class="info"><b>${esc(x.concepto)}${x.tipo === 'fijo' ? '<span class="tag">Fijo</span>' : ''}</b>
       <small>${esc(x.categoria || '')} · ${esc(x.metodo || '')}${x.tipo === 'variable' && x.notas ? ' · ' + esc(x.notas) : ''}</small></div><div class="amt">${money(x.importe)}</div></div>`;
   }
@@ -569,11 +594,18 @@ $('#btnPDF').onclick = () => {
     ${mv.map(x => `<tr><td>${x.fecha.split('-').reverse().join('/')}</td><td>${esc(x.concepto)}${x.foto ? ' 🧾' : ''}</td><td>${esc(x.categoria)}</td><td>${esc(x.metodo)}</td><td>${x.tipo === 'fijo' ? 'Fijo' : 'Variable'}</td><td class="n">${money(x.importe)}</td></tr>`).join('')}
     </tbody><tfoot><tr><th colspan="5">TOTAL</th><th class="n">${money(suma(mv))}</th></tr></tfoot></table>
     ${fotos.length ? `<h2 style="break-before:page">Tickets</h2><div class="fotos">${fotos.map(x =>
-      `<figure><img src="${x.foto}"><figcaption>${x.fecha.split('-').reverse().join('/')} · ${esc(x.concepto)} · ${money(x.importe)}</figcaption></figure>`).join('')}</div>` : ''}`;
+      `<figure><img src="${esc(x.foto)}"><figcaption>${x.fecha.split('-').reverse().join('/')} · ${esc(x.concepto)} · ${money(x.importe)}</figcaption></figure>`).join('')}</div>` : ''}`;
   setTimeout(() => window.print(), 300);
 };
-$('#btnBackup').onclick = () => {
-  const data = { app: 'control-gastos', version: 1, exportado: new Date().toISOString(), ajustes: S.ajustes, gastos: S.gastos, fijos: S.fijos };
+// En modo servidor las fotos son URLs: se incrustan para que la copia sea autosuficiente
+async function aDataURL(src) {
+  if (!src || src.startsWith('data:')) return src;
+  const blob = await (await fetch(src)).blob();
+  return new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(blob); });
+}
+$('#btnBackup').onclick = async () => {
+  const gastos = await Promise.all(S.gastos.map(async g => ({ ...g, foto: await aDataURL(g.foto).catch(() => null) })));
+  const data = { app: 'control-gastos', version: 1, exportado: new Date().toISOString(), ajustes: S.ajustes, gastos, fijos: S.fijos };
   descargar(`copia_gastos_${hoy()}.json`, JSON.stringify(data), 'application/json');
 };
 $('#btnImport').onclick = () => $('#fileImport').click();
@@ -594,6 +626,19 @@ $('#fileImport').onchange = async e => {
   } catch (err) { alert('No se pudo importar: ' + err.message); }
 };
 $('#btnApp').onclick = () => descargar('control-gastos.html', APP_SRC, 'text/html;charset=utf-8');
+$('#btnZip').onclick = () => { location.href = 'api/app.zip'; };
+function renderModo() {
+  if (servidor) {
+    const urls = servidor.direcciones.map(u => `<li><a href="${esc(u)}">${esc(u)}</a></li>`).join('');
+    $('#modoCard').innerHTML = `<h2>🟢 Servidor local activo</h2>
+      <p class="muted">Los gastos y las fotos se guardan en la carpeta <b>datos/</b> del equipo donde se ejecuta el servidor, no en el navegador. Cada día se guarda una copia automática en <b>datos/copias/</b>.</p>
+      ${urls ? `<p class="muted" style="margin-bottom:0">Para usarla desde el móvil (conectado a la misma Wi-Fi) abre:</p><ul style="margin-top:4px">${urls}</ul>` : ''}`;
+    $('#btnZip').hidden = false;
+  } else {
+    $('#modoCard').innerHTML = `<h2>📱 Modo navegador</h2>
+      <p class="muted" style="margin:0">Los datos se guardan solo en este navegador. Para guardarlos en el ordenador y usar la app desde varios dispositivos, usa la versión con servidor (archivo <b>iniciar-…</b> de la app completa).</p>`;
+  }
+}
 
 // ---------- Ajustes ----------
 $('#btnAjustes').onclick = () => {
@@ -604,7 +649,7 @@ $('#btnAjustes').onclick = () => {
 $('#btnBorrar').onclick = async () => {
   if (!confirm('Se borrarán TODOS los gastos, fijos y fotos de este dispositivo. ¿Seguro?')) return;
   if (prompt('Escribe BORRAR para confirmar') !== 'BORRAR') return;
-  await dbClear('gastos'); await dbClear('fijos');
+  try { await borrarTodo(); } catch (e) { return toast('Error al borrar: ' + e.message); }
   S.gastos = []; S.fijos = []; render(); toast('Datos borrados');
 };
 
@@ -635,17 +680,29 @@ document.addEventListener('click', e => {
 
 // ---------- Inicio ----------
 (async () => {
-  try {
-    db = await openDB();
-    S.gastos = await dbAll('gastos');
-    S.fijos = await dbAll('fijos');
-    const aj = (await dbAll('kv')).find(x => x.id === 'ajustes');
-    if (aj) { delete aj.id; S.ajustes = { ...S.ajustes, ...aj }; }
-    if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
-  } catch (e) {
-    $('#aviso').innerHTML = '<div class="banner">⚠️ Este navegador no permite guardar datos (modo privado?). Lo que añadas se perderá al cerrar. Exporta una copia antes de salir.</div>';
+  if (location.protocol.startsWith('http')) {
+    try { const r = await fetch('api/estado'); const e = r.ok && await r.json(); if (e && e.app === 'control-gastos') servidor = e; } catch (e) { /* sin servidor */ }
   }
-  renderCategorias(); render();
+  try {
+    let aj;
+    if (servidor) {
+      const d = await api('GET', 'datos');
+      S.gastos = d.gastos; S.fijos = d.fijos; aj = d.ajustes;
+      const l = document.createElement('link'); l.rel = 'manifest'; l.href = 'manifest.json'; document.head.append(l);
+    } else {
+      db = await openDB();
+      S.gastos = await dbAll('gastos');
+      S.fijos = await dbAll('fijos');
+      aj = (await dbAll('kv')).find(x => x.id === 'ajustes');
+      if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+    }
+    if (aj) { delete aj.id; S.ajustes = { ...S.ajustes, ...aj }; }
+  } catch (e) {
+    $('#aviso').innerHTML = servidor
+      ? `<div class="banner">⚠️ No se pudieron cargar los datos del servidor (${esc(e.message)}). Comprueba que sigue en marcha y recarga.</div>`
+      : '<div class="banner">⚠️ Este navegador no permite guardar datos (modo privado?). Lo que añadas se perderá al cerrar. Exporta una copia antes de salir.</div>';
+  }
+  renderModo(); renderCategorias(); render();
 })();
 </script>
 </body>
