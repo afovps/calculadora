@@ -21,10 +21,11 @@ const SOLO_LOCAL = args.includes('--solo-local');
 const NO_ABRIR = args.includes('--no-abrir');
 let puerto = parseInt(args.find(a => /^\d+$/.test(a)) || process.env.PORT || '8080', 10);
 
-const ESTATICOS = { '/': 'index.html', '/index.html': 'index.html', '/manifest.json': 'manifest.json', '/icon.svg': 'icon.svg' };
+const ESTATICOS = { '/': 'index.html', '/index.html': 'index.html', '/manifest.json': 'manifest.json', '/icon.svg': 'icon.svg', '/sw.js': 'sw.js',
+  '/apple-touch-icon.png': 'apple-touch-icon.png', '/icon-192.png': 'icon-192.png', '/icon-512.png': 'icon-512.png' };
 // Archivos que forman la app completa para compartir (sin datos)
-const APP = ['index.html', 'server.js', 'manifest.json', 'icon.svg', 'LEEME.txt', 'iniciar-windows.bat', 'iniciar-mac.command', 'iniciar-linux.sh'];
-const TIPOS = { '.html': 'text/html; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg' };
+const APP = ['index.html', 'server.js', 'manifest.json', 'sw.js', 'icon.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'LEEME.txt', 'iniciar-windows.bat', 'iniciar-mac.command', 'iniciar-linux.sh'];
+const TIPOS = { '.html': 'text/html; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg', '.png': 'image/png', '.js': 'text/javascript; charset=utf-8' };
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 const URL_TICKET = /^tickets\/[A-Za-z0-9_-]{1,64}\.jpg(\?v=[a-z0-9]+)?$/;
 const MAX_CUERPO = 25 * 1024 * 1024;

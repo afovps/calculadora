@@ -6,6 +6,9 @@
 <meta name="theme-color" content="#0f766e">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gastos">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Control de Gastos</title>
 <style>
 :root{
@@ -25,7 +28,7 @@
 a{color:var(--primary)}
 html,body{margin:0}
 body{background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:90px}
-header{background:var(--primary);color:var(--primary-ink);padding:14px 16px 0;position:sticky;top:0;z-index:5}
+header{background:var(--primary);color:var(--primary-ink);padding:calc(14px + env(safe-area-inset-top)) 16px 0;position:sticky;top:0;z-index:5}
 header h1{margin:0 0 10px;font-size:19px;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .periodo{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
 .periodo select,.periodo input{width:auto;flex:1;min-width:0;background:rgba(255,255,255,.18);color:inherit;border:1px solid rgba(255,255,255,.35);border-radius:8px;padding:6px 8px;font:inherit;color-scheme:dark}
@@ -52,7 +55,8 @@ section{display:none}section.on{display:block}
 .cols span{display:block;width:100%;max-width:38px;background:var(--bar);border-radius:5px 5px 0 0;min-height:2px}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 .toolbar input,.toolbar select{flex:1;min-width:130px}
-input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--text);font:inherit}
+input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--text);font:inherit;font-size:16px}
+.banner button{float:right;background:none;border:0;font-size:18px;line-height:1;cursor:pointer;color:inherit}
 textarea{min-height:60px;resize:vertical}
 label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
@@ -177,7 +181,14 @@ dialog h3{margin:0 0 4px}
     </div>
     <div class="card">
       <h2>Compartir la app</h2>
-      <p class="muted">Descarga la aplicación vacía (sin tus datos) para enviarla por WhatsApp, email, USB… Funciona sin internet y sin IA.</p>
+      <p class="muted">Envía la aplicación vacía (sin tus datos) a quien quieras. Cada persona lleva sus propios gastos en su dispositivo. Funciona sin internet y sin IA.</p>
+      <div id="compartirEnlace" hidden>
+        <p class="muted"><b>Para iPhone y Android:</b> manda el enlace. Se abre en Safari/Chrome y se instala con <b>Compartir → Añadir a pantalla de inicio</b>.</p>
+        <div class="btns" style="margin-bottom:12px">
+          <a class="btn pri" id="btnWhatsApp" target="_blank" rel="noopener">💬 Enviar por WhatsApp</a>
+          <button class="btn" id="btnLink">📤 Compartir enlace</button>
+        </div>
+      </div>
       <ul class="muted" style="padding-left:18px">
         <li><b>App completa (.zip):</b> incluye el servidor local. Se descomprime y se abre con <b>iniciar-windows</b>, <b>iniciar-mac</b> o <b>iniciar-linux</b> (necesita Node.js).</li>
         <li><b>Solo la app (.html):</b> un archivo que se abre directamente en el navegador; los datos quedan en ese navegador.</li>
@@ -556,8 +567,17 @@ function verFoto(id) {
 }
 
 // ---------- Exportar ----------
-function descargar(nombre, contenido, tipo) {
+const ES_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const INSTALADA = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+async function descargar(nombre, contenido, tipo) {
   const blob = contenido instanceof Blob ? contenido : new Blob([contenido], { type: tipo });
+  // En iPhone las descargas desde una app instalada no funcionan bien: se usa el menú Compartir (Guardar en Archivos, WhatsApp…)
+  if (ES_IOS) {
+    const file = new File([blob], nombre, { type: blob.type || tipo });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { return await navigator.share({ files: [file] }); } catch (e) { if (e.name === 'AbortError') return; }
+    }
+  }
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = nombre;
   document.body.appendChild(a); a.click(); a.remove();
@@ -627,6 +647,7 @@ $('#fileImport').onchange = async e => {
 };
 $('#btnApp').onclick = () => descargar('control-gastos.html', APP_SRC, 'text/html;charset=utf-8');
 $('#btnZip').onclick = () => { location.href = 'api/app.zip'; };
+if (ES_IOS) $('#btnApp').hidden = true; // un .html suelto no se puede abrir como app en iPhone
 function renderModo() {
   if (servidor) {
     const urls = servidor.direcciones.map(u => `<li><a href="${esc(u)}">${esc(u)}</a></li>`).join('');
@@ -635,9 +656,29 @@ function renderModo() {
       ${urls ? `<p class="muted" style="margin-bottom:0">Para usarla desde el móvil (conectado a la misma Wi-Fi) abre:</p><ul style="margin-top:4px">${urls}</ul>` : ''}`;
     $('#btnZip').hidden = false;
   } else {
-    $('#modoCard').innerHTML = `<h2>📱 Modo navegador</h2>
-      <p class="muted" style="margin:0">Los datos se guardan solo en este navegador. Para guardarlos en el ordenador y usar la app desde varios dispositivos, usa la versión con servidor (archivo <b>iniciar-…</b> de la app completa).</p>`;
+    $('#modoCard').innerHTML = `<h2>📱 Tus datos están en este dispositivo</h2>
+      <p class="muted" style="margin:0">Los gastos y las fotos se guardan solo aquí; nadie más los ve. Haz de vez en cuando una <b>copia de seguridad</b> (más abajo) por si cambias de móvil o borras el navegador.</p>`;
+    if (location.protocol === 'https:') {
+      const url = location.origin + location.pathname, texto = 'Te paso esta app para controlar tus gastos (gratis, sin registro, los datos se quedan en tu móvil). Ábrela y en Safari pulsa Compartir → "Añadir a pantalla de inicio": ';
+      $('#compartirEnlace').hidden = false;
+      $('#btnWhatsApp').href = 'https://wa.me/?text=' + encodeURIComponent(texto + url);
+      $('#btnLink').onclick = async () => {
+        if (navigator.share) { try { await navigator.share({ title: 'Control de Gastos', text: texto, url }); } catch (e) { /* cancelado */ } }
+        else { try { await navigator.clipboard.writeText(url); toast('Enlace copiado'); } catch (e) { prompt('Copia este enlace:', url); } }
+      };
+    }
   }
+}
+// En iPhone, si no está instalada, Safari puede borrar los datos tras semanas sin uso: se avisa para instalarla
+function avisoInstalar() {
+  let oculto = false;
+  try { oculto = localStorage.getItem('avisoInstalar') === 'no'; } catch (e) { /* sin localStorage */ }
+  if (!ES_IOS || INSTALADA || servidor || oculto || !location.protocol.startsWith('http')) return;
+  const d = document.createElement('div');
+  d.className = 'banner';
+  d.innerHTML = '<button aria-label="Cerrar">×</button>📲 <b>Instálala en tu iPhone:</b> pulsa el botón <b>Compartir</b> de Safari (el cuadrado con la flecha hacia arriba) y elige <b>“Añadir a pantalla de inicio”</b>. Así se abre como una app, funciona sin internet y tus datos no se borran.';
+  d.querySelector('button').onclick = () => { d.remove(); try { localStorage.setItem('avisoInstalar', 'no'); } catch (e) { /* sin localStorage */ } };
+  $('#aviso').append(d);
 }
 
 // ---------- Ajustes ----------
@@ -688,7 +729,6 @@ document.addEventListener('click', e => {
     if (servidor) {
       const d = await api('GET', 'datos');
       S.gastos = d.gastos; S.fijos = d.fijos; aj = d.ajustes;
-      const l = document.createElement('link'); l.rel = 'manifest'; l.href = 'manifest.json'; document.head.append(l);
     } else {
       db = await openDB();
       S.gastos = await dbAll('gastos');
@@ -702,7 +742,12 @@ document.addEventListener('click', e => {
       ? `<div class="banner">⚠️ No se pudieron cargar los datos del servidor (${esc(e.message)}). Comprueba que sigue en marcha y recarga.</div>`
       : '<div class="banner">⚠️ Este navegador no permite guardar datos (modo privado?). Lo que añadas se perderá al cerrar. Exporta una copia antes de salir.</div>';
   }
-  renderModo(); renderCategorias(); render();
+  // Instalable como app (pantalla de inicio) y disponible sin conexión cuando se sirve por http(s)
+  if (location.protocol.startsWith('http')) {
+    const l = document.createElement('link'); l.rel = 'manifest'; l.href = 'manifest.json'; document.head.append(l);
+    if ('serviceWorker' in navigator && isSecureContext) navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+  renderModo(); renderCategorias(); render(); avisoInstalar();
 })();
 </script>
 </body>

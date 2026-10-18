@@ -6,8 +6,28 @@ Aplicación para llevar el control de gastos: gastos manuales, gastos fijos
 copia de seguridad. Funciona 100 % en local: sin internet, sin cuentas y sin IA.
 
 
-CÓMO SE USA
------------
+EN IPHONE / ANDROID (cada persona con sus propios gastos)
+--------------------------------------------------------
+  Un archivo .html enviado por WhatsApp NO funciona en iPhone (solo se ve
+  una vista previa). Hay que usar un enlace web:
+
+  1. Sube a tu hosting (con https) estos archivos, en una misma carpeta:
+       index.html  manifest.json  sw.js  icon.svg
+       apple-touch-icon.png  icon-192.png  icon-512.png
+     Ejemplo: https://tools.airkon.cloud/gastos/
+  2. Abre ese enlace en el iPhone con Safari → botón Compartir →
+     "Añadir a pantalla de inicio". Queda como una app más y funciona
+     sin internet.
+  3. Para pasársela a otra persona: en la app, pestaña Exportar →
+     "Enviar por WhatsApp". La otra persona repite el paso 2.
+
+  Los datos (gastos y fotos) se guardan solo en cada iPhone; nadie más los
+  ve, tampoco el hosting. Haz copias desde Exportar → "Exportar copia"
+  (se puede guardar en Archivos/iCloud o enviar por WhatsApp).
+
+
+EN ORDENADOR — CÓMO SE USA
+--------------------------
 
 Opción A — Con servidor (recomendado)
   Los datos y las fotos se guardan en la carpeta "datos" de tu ordenador y
