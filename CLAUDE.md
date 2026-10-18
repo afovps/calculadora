@@ -84,15 +84,15 @@ Estructura interna del JS:
 
 - **Producción:** https://tools.airkon.cloud
 - **Hosting:** Hostinger (`public_html/tools/index.html`)
-- **CI/CD:** GitHub Actions FTP deploy — **pendiente de configurar**
-  - Secretos necesarios en el repo: `FTP_HOST`, `FTP_USER`, `FTP_PASS`
-  - Workflow: `.github/workflows/deploy.yml` — **pendiente de crear** (token necesita scope `workflow`)
+- **CI/CD:** GitHub Actions FTP deploy (`.github/workflows/deploy.yml`) al hacer push a `main`
+  - Secretos necesarios en el repo: `FTP_HOST`, `FTP_USER`, `FTP_PASS` (variable opcional `FTP_DIR`, por defecto `public_html/tools/`)
+- **App de gastos:** `gastos/` → https://tools.airkon.cloud/gastos/ (PWA instalable; ver `gastos/LEEME.txt`)
 
 ## Estado actual del proyecto
 
 - La aplicación está funcional y desplegada manualmente en Hostinger
 - El repo GitHub actúa como control de versiones
-- El auto-deploy (GitHub Actions → FTP → Hostinger) está pendiente de configurar
+- El auto-deploy (GitHub Actions → FTP → Hostinger) está creado; falta dar de alta los secretos FTP en GitHub
 
 ---
 
