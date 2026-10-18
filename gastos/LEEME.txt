@@ -1,0 +1,82 @@
+CONTROL DE GASTOS
+=================
+
+Aplicación para llevar el control de gastos: gastos manuales, gastos fijos
+(alquiler, luz, seguros…) y fotos de tickets. Exporta a PDF, Excel (CSV) y
+copia de seguridad. Funciona 100 % en local: sin internet, sin cuentas y sin IA.
+
+
+EN IPHONE / ANDROID (cada persona con sus propios gastos)
+--------------------------------------------------------
+  Un archivo .html enviado por WhatsApp NO funciona en iPhone (solo se ve
+  una vista previa). Hay que usar un enlace web:
+
+  1. Sube a tu hosting (con https) estos archivos, en una misma carpeta:
+       index.html  manifest.json  sw.js  icon.svg
+       apple-touch-icon.png  icon-192.png  icon-512.png
+     Ejemplo: https://tools.airkon.cloud/gastos/
+  2. Abre ese enlace en el iPhone con Safari → botón Compartir →
+     "Añadir a pantalla de inicio". Queda como una app más y funciona
+     sin internet.
+  3. Para pasársela a otra persona: en la app, pestaña Exportar →
+     "Enviar por WhatsApp". La otra persona repite el paso 2.
+
+  Los datos (gastos y fotos) se guardan solo en cada iPhone; nadie más los
+  ve, tampoco el hosting. Haz copias desde Exportar → "Exportar copia"
+  (se puede guardar en Archivos/iCloud o enviar por WhatsApp).
+
+
+EN ORDENADOR — CÓMO SE USA
+--------------------------
+
+Opción A — Con servidor (recomendado)
+  Los datos y las fotos se guardan en la carpeta "datos" de tu ordenador y
+  puedes usar la app también desde el móvil.
+
+  1. Instala Node.js (gratis, solo la primera vez): https://nodejs.org  → versión LTS
+  2. Descomprime esta carpeta donde quieras (por ejemplo en Documentos).
+  3. Haz doble clic en:
+       - Windows:  iniciar-windows.bat
+       - Mac:      iniciar-mac.command
+                   (la primera vez: clic derecho → Abrir → Abrir, porque macOS
+                    avisa de los archivos descargados)
+       - Linux:    iniciar-linux.sh   (o en terminal: node server.js)
+  4. Se abre el navegador con la app. Deja la ventana negra abierta mientras
+     la uses; para cerrar el servidor, ciérrala o pulsa Ctrl+C.
+
+  Desde el móvil: conéctalo a la misma Wi-Fi que el ordenador y abre la
+  dirección "Desde el móvil" que aparece en la ventana negra (también se ve en
+  la pestaña Exportar de la app). En el navegador del móvil puedes usar
+  "Añadir a pantalla de inicio" para tenerla como una app más.
+  Si Windows pregunta por el Firewall, permite el acceso en redes privadas.
+
+Opción B — Sin instalar nada
+  Abre index.html con doble clic. Los datos se guardan solo en ese navegador
+  (si borras los datos del navegador, se pierden: haz copias desde Exportar).
+
+
+DÓNDE ESTÁN MIS DATOS (opción A)
+--------------------------------
+  datos/datos.json      gastos, gastos fijos y ajustes
+  datos/tickets/        fotos de los tickets (.jpg)
+  datos/copias/         copia automática diaria (últimos 30 días)
+
+  Para hacer copia, basta con copiar la carpeta "datos". Para pasar a otro
+  ordenador, copia toda la carpeta de la app con su carpeta "datos".
+
+
+COMPARTIR LA APP
+----------------
+  En la pestaña Exportar → "App completa (.zip)" se descarga esta misma
+  carpeta vacía (sin tus datos) para enviársela a quien quieras.
+
+
+OPCIONES AVANZADAS
+------------------
+  node server.js 9000           usar el puerto 9000 (por defecto 8080)
+  node server.js --solo-local   no permitir conexiones desde otros dispositivos
+  node server.js --no-abrir     no abrir el navegador al arrancar
+
+  Aviso: con el servidor en marcha, cualquier dispositivo de tu misma red
+  Wi-Fi puede abrir la app. Úsalo en redes de confianza (casa, oficina) o
+  arranca con --solo-local.

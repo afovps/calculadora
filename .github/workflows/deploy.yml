@@ -1,0 +1,40 @@
+# Publica la web en Hostinger (https://tools.airkon.cloud) por FTP cada vez que se actualiza main.
+# Secretos necesarios en GitHub (Settings → Secrets and variables → Actions):
+#   FTP_HOST, FTP_USER, FTP_PASS
+# Variable opcional FTP_DIR: carpeta de destino en el servidor (por defecto public_html/tools/)
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Subir por FTP a Hostinger
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          server-dir: ${{ vars.FTP_DIR || 'public_html/tools/' }}
+          # Solo se publica la web; el servidor local y sus scripts van en la app completa, no en el hosting
+          exclude: |
+            **/.git*
+            **/.git*/**
+            .github/**
+            CLAUDE.md
+            README.md
+            CNAME
+            gastos/server.js
+            gastos/iniciar-*
+            gastos/LEEME.txt
+            gastos/datos/**

@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gastos">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Control de Gastos</title>
+<style>
+:root{
+  --bg:#f4f6f8; --card:#ffffff; --text:#1c2430; --muted:#667085; --line:#e3e7ec;
+  --primary:#0f766e; --primary-ink:#ffffff; --accent:#e8f5f3; --danger:#c0392b;
+  --fijo:#6d4cc2; --fijo-bg:#efeafb; --bar:#14b8a6; --shadow:0 1px 3px rgba(0,0,0,.08);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#11161c; --card:#1a2129; --text:#e6eaef; --muted:#98a2b3; --line:#2a333d;
+    --primary:#2dd4bf; --primary-ink:#06231f; --accent:#15302d; --danger:#f07167;
+    --fijo:#b49cf5; --fijo-bg:#2a2340; --bar:#2dd4bf; --shadow:none;
+  }
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+a{color:var(--primary)}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:90px}
+header{background:var(--primary);color:var(--primary-ink);padding:calc(14px + env(safe-area-inset-top)) 16px 0;position:sticky;top:0;z-index:5}
+header h1{margin:0 0 10px;font-size:19px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.periodo{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.periodo select,.periodo input{width:auto;flex:1;min-width:0;background:rgba(255,255,255,.18);color:inherit;border:1px solid rgba(255,255,255,.35);border-radius:8px;padding:6px 8px;font:inherit;color-scheme:dark}
+.periodo button{background:rgba(255,255,255,.18);color:inherit;border:0;border-radius:8px;padding:6px 10px;font:inherit;cursor:pointer}
+nav{display:flex;gap:2px;overflow-x:auto}
+nav button{flex:1;background:none;border:0;color:inherit;opacity:.75;padding:10px 8px;font:inherit;font-weight:600;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap}
+nav button.on{opacity:1;border-bottom-color:currentColor}
+main{max-width:860px;margin:0 auto;padding:16px}
+section{display:none}section.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:var(--shadow)}
+.card h2{font-size:15px;margin:0 0 10px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:var(--shadow)}
+.kpi small{color:var(--muted);display:block}
+.kpi b{font-size:21px;font-variant-numeric:tabular-nums}
+.bar-row{display:grid;grid-template-columns:minmax(80px,140px) 1fr auto;gap:8px;align-items:center;margin:6px 0;font-size:14px}
+.bar{height:10px;background:var(--accent);border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--bar);border-radius:6px}
+.prog{height:10px;background:var(--accent);border-radius:6px;overflow:hidden;margin-top:6px}
+.prog i{display:block;height:100%;background:var(--bar)}
+.prog.over i{background:var(--danger)}
+.cols{display:flex;align-items:flex-end;gap:8px;height:120px;padding-top:6px}
+.cols div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;font-size:11px;color:var(--muted)}
+.cols span{display:block;width:100%;max-width:38px;background:var(--bar);border-radius:5px 5px 0 0;min-height:2px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.toolbar input,.toolbar select{flex:1;min-width:130px}
+input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--text);font:inherit;font-size:16px}
+.banner button{float:right;background:none;border:0;font-size:18px;line-height:1;cursor:pointer;color:inherit}
+textarea{min-height:60px;resize:vertical}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--card);color:var(--text);padding:9px 14px;border-radius:10px;font:inherit;font-weight:600;cursor:pointer;text-decoration:none}
+.btn.pri{background:var(--primary);border-color:var(--primary);color:var(--primary-ink)}
+.btn.del{color:var(--danger)}
+.btn.full{width:100%}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.item{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.item:last-child{border-bottom:0}
+.item .thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;flex:none;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:20px}
+.item .info{flex:1;min-width:0}
+.item .info b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .info small{color:var(--muted)}
+.item .amt{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:20px;background:var(--fijo-bg);color:var(--fijo);margin-left:4px;vertical-align:middle}
+.tag.off{background:var(--line);color:var(--muted)}
+.empty{text-align:center;color:var(--muted);padding:24px 8px}
+.daysep{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;margin:12px 4px 2px}
+.fab{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom));width:60px;height:60px;border-radius:50%;border:0;background:var(--primary);color:var(--primary-ink);font-size:32px;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer;z-index:6}
+dialog{border:0;border-radius:16px;padding:0;width:min(520px,calc(100% - 24px));max-height:calc(100% - 24px);background:var(--card);color:var(--text)}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+dialog form{padding:16px}
+dialog h3{margin:0 0 4px}
+.foto-box{border:2px dashed var(--line);border-radius:12px;padding:12px;text-align:center}
+.foto-box img{max-width:100%;max-height:240px;border-radius:8px;display:block;margin:0 auto 10px}
+.viewer{background:#000;width:auto;max-width:96vw}
+.viewer img{display:block;max-width:96vw;max-height:84vh}
+.viewer .btns{padding:10px;background:#111;justify-content:center}
+.banner{background:#fff4d6;color:#7a5a00;padding:10px 14px;border-radius:10px;margin-bottom:12px;font-size:14px}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:10px;opacity:0;transition:.25s;pointer-events:none;z-index:50}
+.toast.on{opacity:1}
+.muted{color:var(--muted);font-size:13px}
+#print{display:none}
+@media (max-width:480px){.grid2{grid-template-columns:1fr}}
+@media print{
+  body{background:#fff;color:#000;padding:0}
+  body>*:not(#print){display:none!important}
+  #print{display:block;font-size:12px}
+  #print h1{font-size:20px;margin:0}
+  #print table{width:100%;border-collapse:collapse;margin:12px 0}
+  #print th,#print td{border-bottom:1px solid #ccc;padding:5px;text-align:left}
+  #print td.n,#print th.n{text-align:right}
+  #print .fotos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  #print .fotos figure{margin:0;break-inside:avoid}
+  #print .fotos img{width:100%;max-height:300px;object-fit:contain;border:1px solid #ccc}
+  #print figcaption{font-size:11px}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1><span>💶 Control de Gastos</span><span id="hdrNombre" style="font-size:13px;font-weight:500;opacity:.85"></span></h1>
+  <div class="periodo">
+    <button id="prev" aria-label="Periodo anterior">‹</button>
+    <select id="perTipo"><option value="mes">Mes</option><option value="anio">Año</option></select>
+    <input type="month" id="perMes">
+    <button id="next" aria-label="Periodo siguiente">›</button>
+  </div>
+  <nav>
+    <button data-tab="resumen" class="on">Resumen</button>
+    <button data-tab="gastos">Gastos</button>
+    <button data-tab="fijos">Fijos</button>
+    <button data-tab="exportar">Exportar</button>
+  </nav>
+</header>
+
+<main>
+  <div id="aviso"></div>
+
+  <section id="resumen" class="on">
+    <div class="kpis">
+      <div class="kpi"><small>Total periodo</small><b id="kTotal">0</b></div>
+      <div class="kpi"><small>Gastos fijos</small><b id="kFijos">0</b></div>
+      <div class="kpi"><small>Gastos variables</small><b id="kVar">0</b></div>
+      <div class="kpi"><small>Tickets con foto</small><b id="kTickets">0</b></div>
+    </div>
+    <div class="card" id="presuCard"></div>
+    <div class="card"><h2>Por categoría</h2><div id="porCat"></div></div>
+    <div class="card"><h2 id="evoTit">Evolución</h2><div class="cols" id="evo"></div></div>
+  </section>
+
+  <section id="gastos">
+    <div class="toolbar">
+      <input type="search" id="buscar" placeholder="Buscar concepto o nota…">
+      <select id="filtroCat"></select>
+      <select id="filtroTipo"><option value="">Todos</option><option value="variable">Variables</option><option value="fijo">Fijos</option></select>
+    </div>
+    <div class="card" id="lista"></div>
+  </section>
+
+  <section id="fijos">
+    <div class="card">
+      <h2>Gastos fijos / recurrentes</h2>
+      <p class="muted">Se suman automáticamente a cada mes según su frecuencia (alquiler, luz, seguros, suscripciones…).</p>
+      <div id="listaFijos"></div>
+      <p><button class="btn pri full" id="nuevoFijo">+ Añadir gasto fijo</button></p>
+      <p class="muted" id="fijosMensual"></p>
+    </div>
+  </section>
+
+  <section id="exportar">
+    <div class="card" id="modoCard"></div>
+    <div class="card">
+      <h2>Informe del periodo</h2>
+      <p class="muted">Exporta los gastos del periodo seleccionado arriba.</p>
+      <label style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="pdfFotos" checked style="width:auto"> Incluir fotos de tickets en el PDF</label>
+      <div class="btns" style="margin-top:10px">
+        <button class="btn pri" id="btnPDF">🖨️ PDF / Imprimir</button>
+        <button class="btn" id="btnCSV">📊 Excel (CSV)</button>
+        <button class="btn" id="btnShare">📤 Compartir CSV</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Copia de seguridad</h2>
+      <p class="muted">Guarda todos los datos (incluidas las fotos) en un archivo. Puedes enviarlo y cargarlo en otro dispositivo con esta misma app.</p>
+      <div class="btns">
+        <button class="btn pri" id="btnBackup">💾 Exportar copia</button>
+        <button class="btn" id="btnImport">📂 Importar copia</button>
+        <input type="file" id="fileImport" accept=".json,application/json" hidden>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Compartir la app</h2>
+      <p class="muted">Envía la aplicación vacía (sin tus datos) a quien quieras. Cada persona lleva sus propios gastos en su dispositivo. Funciona sin internet y sin IA.</p>
+      <div id="compartirEnlace" hidden>
+        <p class="muted"><b>Para iPhone y Android:</b> manda el enlace. Se abre en Safari/Chrome y se instala con <b>Compartir → Añadir a pantalla de inicio</b>.</p>
+        <div class="btns" style="margin-bottom:12px">
+          <a class="btn pri" id="btnWhatsApp" target="_blank" rel="noopener">💬 Enviar por WhatsApp</a>
+          <button class="btn" id="btnLink">📤 Compartir enlace</button>
+        </div>
+      </div>
+      <ul class="muted" style="padding-left:18px">
+        <li><b>App completa (.zip):</b> incluye el servidor local. Se descomprime y se abre con <b>iniciar-windows</b>, <b>iniciar-mac</b> o <b>iniciar-linux</b> (necesita Node.js).</li>
+        <li><b>Solo la app (.html):</b> un archivo que se abre directamente en el navegador; los datos quedan en ese navegador.</li>
+      </ul>
+      <div class="btns">
+        <button class="btn pri" id="btnZip" hidden>📦 App completa (.zip)</button>
+        <button class="btn" id="btnApp">📄 Solo la app (.html)</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Ajustes</h2>
+      <label for="ajNombre">Nombre / empresa (aparece en el informe)</label>
+      <input id="ajNombre" placeholder="Opcional">
+      <label for="ajPresu">Presupuesto mensual (€)</label>
+      <input id="ajPresu" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Opcional">
+      <label for="ajCats">Categorías (separadas por comas)</label>
+      <textarea id="ajCats"></textarea>
+      <div class="btns" style="margin-top:12px">
+        <button class="btn pri" id="btnAjustes">Guardar ajustes</button>
+        <button class="btn del" id="btnBorrar">Borrar todos los datos</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<button class="fab" id="fab" aria-label="Añadir gasto">+</button>
+
+<dialog id="dlgGasto">
+  <form method="dialog" id="fGasto">
+    <h3 id="tGasto">Nuevo gasto</h3>
+    <div class="foto-box" id="fotoBox">
+      <img id="fotoPrev" hidden alt="Ticket">
+      <div class="btns" style="justify-content:center">
+        <button type="button" class="btn" id="btnCam">📷 Hacer foto</button>
+        <button type="button" class="btn" id="btnGal">🖼️ Galería</button>
+        <button type="button" class="btn del" id="btnQuitarFoto" hidden>Quitar</button>
+      </div>
+      <input type="file" id="inCam" accept="image/*" capture="environment" hidden>
+      <input type="file" id="inGal" accept="image/*" hidden>
+    </div>
+    <div class="grid2">
+      <div><label for="gImporte">Importe (€) *</label><input id="gImporte" type="number" step="0.01" min="0" inputmode="decimal" required></div>
+      <div><label for="gFecha">Fecha *</label><input id="gFecha" type="date" required></div>
+    </div>
+    <label for="gConcepto">Concepto *</label>
+    <input id="gConcepto" required placeholder="Ej. Gasolina, comida, material…">
+    <div class="grid2">
+      <div><label for="gCat">Categoría</label><select id="gCat"></select></div>
+      <div><label for="gMetodo">Forma de pago</label>
+        <select id="gMetodo"><option>Tarjeta</option><option>Efectivo</option><option>Transferencia</option><option>Bizum</option><option>Domiciliación</option><option>Otro</option></select></div>
+    </div>
+    <label for="gNotas">Notas</label>
+    <textarea id="gNotas"></textarea>
+    <div class="btns" style="margin-top:14px;justify-content:space-between">
+      <button type="button" class="btn del" id="btnDelGasto" hidden>Eliminar</button>
+      <span class="btns" style="margin-left:auto">
+        <button type="button" class="btn" data-close>Cancelar</button>
+        <button type="submit" class="btn pri" value="ok">Guardar</button>
+      </span>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgFijo">
+  <form method="dialog" id="fFijo">
+    <h3 id="tFijo">Nuevo gasto fijo</h3>
+    <label for="fConcepto">Concepto *</label>
+    <input id="fConcepto" required placeholder="Ej. Alquiler, Luz, Seguro coche…">
+    <div class="grid2">
+      <div><label for="fImporte">Importe (€) *</label><input id="fImporte" type="number" step="0.01" min="0" inputmode="decimal" required></div>
+      <div><label for="fFrec">Frecuencia</label>
+        <select id="fFrec"><option value="mensual">Mensual</option><option value="bimestral">Bimestral</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option></select></div>
+      <div><label for="fCat">Categoría</label><select id="fCat"></select></div>
+      <div><label for="fDia">Día de cargo</label><input id="fDia" type="number" min="1" max="31" value="1"></div>
+      <div><label for="fInicio">Desde (mes) *</label><input id="fInicio" type="month" required></div>
+      <div><label for="fFin">Hasta (opcional)</label><input id="fFin" type="month"></div>
+    </div>
+    <label for="fMetodo">Forma de pago</label>
+    <select id="fMetodo"><option>Domiciliación</option><option>Tarjeta</option><option>Transferencia</option><option>Efectivo</option><option>Bizum</option><option>Otro</option></select>
+    <label style="display:flex;gap:8px;align-items:center;color:var(--text);margin-top:12px"><input type="checkbox" id="fActivo" checked style="width:auto"> Activo</label>
+    <div class="btns" style="margin-top:14px;justify-content:space-between">
+      <button type="button" class="btn del" id="btnDelFijo" hidden>Eliminar</button>
+      <span class="btns" style="margin-left:auto">
+        <button type="button" class="btn" data-close>Cancelar</button>
+        <button type="submit" class="btn pri" value="ok">Guardar</button>
+      </span>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgVer" class="viewer">
+  <img id="verImg" alt="Ticket">
+  <div class="btns">
+    <a class="btn" id="verDescargar" download="ticket.jpg">⬇️ Descargar</a>
+    <button class="btn" data-close>Cerrar</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast"></div>
+<div id="print"></div>
+
+<script>
+// Copia limpia de la app (antes de pintar datos) para poder enviarla
+const APP_SRC = '<!doctype html>\n' + document.documentElement.outerHTML;
+
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const pad = n => String(n).padStart(2, '0');
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const eur = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
+const money = n => eur.format(n || 0);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const hoy = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const MESES_L = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const FREQ = { mensual: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12 };
+const CATS_DEF = ['Alimentación', 'Combustible', 'Transporte', 'Vivienda', 'Suministros', 'Restaurantes', 'Material', 'Herramientas', 'Salud', 'Ocio', 'Seguros', 'Suscripciones', 'Impuestos', 'Otros'];
+
+const S = { gastos: [], fijos: [], ajustes: { nombre: '', presupuesto: 0, categorias: CATS_DEF }, tipo: 'mes', ym: hoy().slice(0, 7) };
+
+// ---------- Almacenamiento ----------
+// Si la app se sirve desde server.js, los datos y fotos se guardan en el equipo (carpeta datos/).
+// Si se abre el .html suelto, se guardan en el navegador (IndexedDB).
+let db = null, servidor = null;
+async function api(metodo, ruta, cuerpo) {
+  const r = await fetch('api/' + ruta, {
+    method: metodo, headers: cuerpo ? { 'Content-Type': 'application/json' } : {},
+    body: cuerpo ? JSON.stringify(cuerpo) : undefined
+  });
+  if (!r.ok) throw new Error('servidor respondió ' + r.status);
+  return r.json();
+}
+function openDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('control-gastos', 1);
+    r.onupgradeneeded = () => { for (const s of ['gastos', 'fijos', 'kv']) r.result.createObjectStore(s, { keyPath: 'id' }); };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+function req(store, mode, fn) {
+  if (!db) return Promise.resolve(store === 'kv' ? null : []);
+  return new Promise((res, rej) => {
+    const t = db.transaction(store, mode), r = fn(t.objectStore(store));
+    t.oncomplete = () => res(r && r.result);
+    t.onerror = () => rej(t.error);
+  });
+}
+const dbAll = s => req(s, 'readonly', st => st.getAll());
+// En modo servidor la respuesta trae la URL definitiva de la foto: se copia sobre el objeto en memoria
+const dbPut = (s, v) => (servidor
+  ? api('PUT', s === 'kv' ? 'ajustes' : `${s}/${v.id}`, v).then(r => Object.assign(v, r))
+  : req(s, 'readwrite', st => st.put(v))).catch(e => toast('Error al guardar: ' + e.message));
+const dbDel = (s, id) => (servidor ? api('DELETE', `${s}/${id}`) : req(s, 'readwrite', st => st.delete(id)))
+  .catch(e => toast('Error al borrar: ' + e.message));
+const borrarTodo = () => servidor ? api('DELETE', 'datos')
+  : Promise.all(['gastos', 'fijos'].map(s => req(s, 'readwrite', st => st.clear())));
+
+// ---------- Periodo y cálculos ----------
+function mesesPeriodo() {
+  const [y, m] = S.ym.split('-').map(Number);
+  return S.tipo === 'mes' ? [[y, m]] : Array.from({ length: 12 }, (_, i) => [y, i + 1]);
+}
+function fechaFijo(f, y, m) {
+  if (!f.activo || !f.inicio) return null;
+  const [iy, im] = f.inicio.split('-').map(Number);
+  const idx = y * 12 + m, i0 = iy * 12 + im;
+  if (idx < i0) return null;
+  if (f.fin) { const [fy, fm] = f.fin.split('-').map(Number); if (idx > fy * 12 + fm) return null; }
+  if ((idx - i0) % FREQ[f.frecuencia]) return null;
+  return `${y}-${pad(m)}-${pad(Math.min(f.dia || 1, new Date(y, m, 0).getDate()))}`;
+}
+function movimientos(meses = mesesPeriodo()) {
+  const pref = new Set(meses.map(([y, m]) => `${y}-${pad(m)}`));
+  const out = S.gastos.filter(g => pref.has(g.fecha.slice(0, 7))).map(g => ({ ...g, tipo: 'variable' }));
+  for (const f of S.fijos) for (const [y, m] of meses) {
+    const fecha = fechaFijo(f, y, m);
+    if (fecha) out.push({ id: f.id, tipo: 'fijo', fecha, concepto: f.concepto, categoria: f.categoria, importe: f.importe, metodo: f.metodo, notas: f.frecuencia });
+  }
+  return out.sort((a, b) => b.fecha.localeCompare(a.fecha));
+}
+const suma = arr => arr.reduce((t, x) => t + (+x.importe || 0), 0);
+function etiquetaPeriodo() {
+  const [y, m] = S.ym.split('-').map(Number);
+  return S.tipo === 'mes' ? `${MESES_L[m - 1]} ${y}` : `Año ${y}`;
+}
+
+// ---------- Render ----------
+function render() {
+  $('#perMes').value = S.ym;
+  $('#perTipo').value = S.tipo;
+  $('#hdrNombre').textContent = S.ajustes.nombre || '';
+  renderResumen(); renderLista(); renderFijos();
+}
+function renderResumen() {
+  const mv = movimientos(), fij = mv.filter(x => x.tipo === 'fijo'), vars = mv.filter(x => x.tipo === 'variable');
+  const total = suma(mv);
+  $('#kTotal').textContent = money(total);
+  $('#kFijos').textContent = money(suma(fij));
+  $('#kVar').textContent = money(suma(vars));
+  $('#kTickets').textContent = vars.filter(x => x.foto).length;
+
+  const presu = (+S.ajustes.presupuesto || 0) * (S.tipo === 'mes' ? 1 : 12);
+  if (presu > 0) {
+    const pct = total / presu * 100;
+    $('#presuCard').hidden = false;
+    $('#presuCard').innerHTML = `<h2>Presupuesto</h2><div style="display:flex;justify-content:space-between"><span>${money(total)} de ${money(presu)}</span><b>${pct.toFixed(0)}%</b></div>
+      <div class="prog ${pct > 100 ? 'over' : ''}"><i style="width:${Math.min(pct, 100)}%"></i></div>
+      <p class="muted" style="margin:6px 0 0">${pct > 100 ? 'Te has pasado en ' + money(total - presu) : 'Te quedan ' + money(presu - total)}</p>`;
+  } else $('#presuCard').hidden = true;
+
+  const cats = {};
+  mv.forEach(x => cats[x.categoria || 'Otros'] = (cats[x.categoria || 'Otros'] || 0) + (+x.importe || 0));
+  const filas = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+  const max = filas.length ? filas[0][1] : 1;
+  $('#porCat').innerHTML = filas.length ? filas.map(([c, v]) =>
+    `<div class="bar-row"><span>${esc(c)}</span><div class="bar"><i style="width:${v / max * 100}%"></i></div><b>${money(v)}</b></div>`).join('')
+    : '<div class="empty">Sin gastos en este periodo.<br>Pulsa <b>+</b> para añadir uno.</div>';
+
+  // Evolución: últimos 6 meses (vista mes) o 12 meses del año
+  const [y, m] = S.ym.split('-').map(Number);
+  const meses = S.tipo === 'mes'
+    ? Array.from({ length: 6 }, (_, i) => { const d = new Date(y, m - 6 + i, 1); return [d.getFullYear(), d.getMonth() + 1]; })
+    : Array.from({ length: 12 }, (_, i) => [y, i + 1]);
+  const vals = meses.map(mm => suma(movimientos([mm])));
+  const vmax = Math.max(...vals, 1);
+  $('#evoTit').textContent = S.tipo === 'mes' ? 'Últimos 6 meses' : `Meses de ${y}`;
+  $('#evo').innerHTML = meses.map(([, mm], i) =>
+    `<div title="${money(vals[i])}"><small style="font-size:10px">${vals[i] ? Math.round(vals[i]) + '€' : ''}</small><span style="height:${vals[i] / vmax * 85}%"></span>${MESES[mm - 1]}</div>`).join('');
+}
+function renderLista() {
+  const q = $('#buscar').value.trim().toLowerCase(), fc = $('#filtroCat').value, ft = $('#filtroTipo').value;
+  const mv = movimientos().filter(x =>
+    (!fc || x.categoria === fc) && (!ft || x.tipo === ft) &&
+    (!q || (x.concepto + ' ' + (x.notas || '')).toLowerCase().includes(q)));
+  if (!mv.length) { $('#lista').innerHTML = '<div class="empty">No hay gastos que mostrar.</div>'; return; }
+  let html = `<div class="muted" style="padding:0 4px 4px">${mv.length} movimientos · <b>${money(suma(mv))}</b></div>`, dia = '';
+  for (const x of mv) {
+    if (x.fecha !== dia) {
+      dia = x.fecha;
+      html += `<div class="daysep">${new Date(dia + 'T12:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</div>`;
+    }
+    const thumb = x.foto ? `<img class="thumb" src="${esc(x.foto)}" data-ver="${x.id}" alt="">` : `<div class="thumb">${x.tipo === 'fijo' ? '🔁' : '🧾'}</div>`;
+    html += `<div class="item" data-${x.tipo}="${x.id}">${thumb}<div class="info"><b>${esc(x.concepto)}${x.tipo === 'fijo' ? '<span class="tag">Fijo</span>' : ''}</b>
+      <small>${esc(x.categoria || '')} · ${esc(x.metodo || '')}${x.tipo === 'variable' && x.notas ? ' · ' + esc(x.notas) : ''}</small></div><div class="amt">${money(x.importe)}</div></div>`;
+  }
+  $('#lista').innerHTML = html;
+}
+function renderFijos() {
+  const lst = [...S.fijos].sort((a, b) => b.importe / FREQ[b.frecuencia] - a.importe / FREQ[a.frecuencia]);
+  $('#listaFijos').innerHTML = lst.length ? lst.map(f => `<div class="item" data-fijo="${f.id}"><div class="thumb">🔁</div>
+    <div class="info"><b>${esc(f.concepto)}${f.activo ? '' : '<span class="tag off">Pausado</span>'}</b>
+    <small>${esc(f.categoria)} · ${f.frecuencia} · día ${f.dia}${f.fin ? ' · hasta ' + f.fin : ''}</small></div><div class="amt">${money(f.importe)}</div></div>`).join('')
+    : '<div class="empty">Aún no tienes gastos fijos.</div>';
+  const mensual = S.fijos.filter(f => f.activo).reduce((t, f) => t + f.importe / FREQ[f.frecuencia], 0);
+  $('#fijosMensual').textContent = S.fijos.length ? `Equivalente mensual de fijos activos: ${money(mensual)} · anual: ${money(mensual * 12)}` : '';
+}
+function renderCategorias() {
+  const opts = S.ajustes.categorias.map(c => `<option>${esc(c)}</option>`).join('');
+  $('#gCat').innerHTML = opts; $('#fCat').innerHTML = opts;
+  $('#filtroCat').innerHTML = '<option value="">Todas las categorías</option>' + opts;
+  $('#ajNombre').value = S.ajustes.nombre || '';
+  $('#ajPresu').value = S.ajustes.presupuesto || '';
+  $('#ajCats').value = S.ajustes.categorias.join(', ');
+}
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2400);
+}
+
+// ---------- Gasto (variable) ----------
+let editGasto = null, fotoActual = null;
+function abrirGasto(id) {
+  const g = S.gastos.find(x => x.id === id);
+  editGasto = g ? g.id : null;
+  $('#tGasto').textContent = g ? 'Editar gasto' : 'Nuevo gasto';
+  $('#gImporte').value = g ? g.importe : '';
+  $('#gFecha').value = g ? g.fecha : (S.ym === hoy().slice(0, 7) || S.tipo === 'anio' ? hoy() : S.ym + '-01');
+  $('#gConcepto').value = g ? g.concepto : '';
+  $('#gCat').value = g ? g.categoria : S.ajustes.categorias[0];
+  $('#gMetodo').value = g ? g.metodo : 'Tarjeta';
+  $('#gNotas').value = g ? g.notas : '';
+  setFoto(g ? g.foto : null);
+  $('#btnDelGasto').hidden = !g;
+  $('#dlgGasto').showModal();
+}
+function setFoto(src) {
+  fotoActual = src || null;
+  $('#fotoPrev').hidden = !src; if (src) $('#fotoPrev').src = src;
+  $('#btnQuitarFoto').hidden = !src;
+}
+// Reduce la foto para que no ocupe demasiado (máx. 1600px, JPEG)
+function comprimir(file) {
+  return new Promise((res, rej) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      res(c.toDataURL('image/jpeg', 0.72));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('Imagen no válida')); };
+    img.src = url;
+  });
+}
+async function onFoto(e) {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try { setFoto(await comprimir(f)); } catch (err) { toast(err.message); }
+}
+$('#inCam').onchange = onFoto; $('#inGal').onchange = onFoto;
+$('#btnCam').onclick = () => $('#inCam').click();
+$('#btnGal').onclick = () => $('#inGal').click();
+$('#btnQuitarFoto').onclick = () => setFoto(null);
+$('#fGasto').onsubmit = e => {
+  if (e.submitter && e.submitter.value !== 'ok') return;
+  const g = {
+    id: editGasto || uid(), fecha: $('#gFecha').value, concepto: $('#gConcepto').value.trim(),
+    categoria: $('#gCat').value, importe: Math.round(parseFloat($('#gImporte').value) * 100) / 100,
+    metodo: $('#gMetodo').value, notas: $('#gNotas').value.trim(), foto: fotoActual,
+    creado: (S.gastos.find(x => x.id === editGasto) || {}).creado || new Date().toISOString()
+  };
+  S.gastos = S.gastos.filter(x => x.id !== g.id).concat(g);
+  dbPut('gastos', g); render(); toast('Gasto guardado');
+};
+$('#btnDelGasto').onclick = () => {
+  if (!confirm('¿Eliminar este gasto?')) return;
+  S.gastos = S.gastos.filter(x => x.id !== editGasto);
+  dbDel('gastos', editGasto); $('#dlgGasto').close(); render(); toast('Gasto eliminado');
+};
+
+// ---------- Gasto fijo ----------
+let editFijo = null;
+function abrirFijo(id) {
+  const f = S.fijos.find(x => x.id === id);
+  editFijo = f ? f.id : null;
+  $('#tFijo').textContent = f ? 'Editar gasto fijo' : 'Nuevo gasto fijo';
+  $('#fConcepto').value = f ? f.concepto : '';
+  $('#fImporte').value = f ? f.importe : '';
+  $('#fFrec').value = f ? f.frecuencia : 'mensual';
+  $('#fCat').value = f ? f.categoria : (S.ajustes.categorias.includes('Vivienda') ? 'Vivienda' : S.ajustes.categorias[0]);
+  $('#fDia').value = f ? f.dia : 1;
+  $('#fInicio').value = f ? f.inicio : S.ym;
+  $('#fFin').value = f ? f.fin || '' : '';
+  $('#fMetodo').value = f ? f.metodo : 'Domiciliación';
+  $('#fActivo').checked = f ? f.activo : true;
+  $('#btnDelFijo').hidden = !f;
+  $('#dlgFijo').showModal();
+}
+$('#fFijo').onsubmit = e => {
+  if (e.submitter && e.submitter.value !== 'ok') return;
+  const f = {
+    id: editFijo || uid(), concepto: $('#fConcepto').value.trim(),
+    importe: Math.round(parseFloat($('#fImporte').value) * 100) / 100, frecuencia: $('#fFrec').value,
+    categoria: $('#fCat').value, dia: Math.min(31, Math.max(1, parseInt($('#fDia').value) || 1)),
+    inicio: $('#fInicio').value, fin: $('#fFin').value, metodo: $('#fMetodo').value, activo: $('#fActivo').checked
+  };
+  S.fijos = S.fijos.filter(x => x.id !== f.id).concat(f);
+  dbPut('fijos', f); render(); toast('Gasto fijo guardado');
+};
+$('#btnDelFijo').onclick = () => {
+  if (!confirm('¿Eliminar este gasto fijo? Desaparecerá de todos los meses.')) return;
+  S.fijos = S.fijos.filter(x => x.id !== editFijo);
+  dbDel('fijos', editFijo); $('#dlgFijo').close(); render(); toast('Gasto fijo eliminado');
+};
+$('#nuevoFijo').onclick = () => abrirFijo();
+
+// ---------- Visor de tickets ----------
+function verFoto(id) {
+  const g = S.gastos.find(x => x.id === id); if (!g || !g.foto) return;
+  $('#verImg').src = g.foto; $('#verDescargar').href = g.foto;
+  $('#verDescargar').download = `ticket_${g.fecha}_${g.concepto.replace(/[^\w-]+/g, '_')}.jpg`;
+  $('#dlgVer').showModal();
+}
+
+// ---------- Exportar ----------
+const ES_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const INSTALADA = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+async function descargar(nombre, contenido, tipo) {
+  const blob = contenido instanceof Blob ? contenido : new Blob([contenido], { type: tipo });
+  // En iPhone las descargas desde una app instalada no funcionan bien: se usa el menú Compartir (Guardar en Archivos, WhatsApp…)
+  if (ES_IOS) {
+    const file = new File([blob], nombre, { type: blob.type || tipo });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { return await navigator.share({ files: [file] }); } catch (e) { if (e.name === 'AbortError') return; }
+    }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = nombre;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+const nombrePeriodo = () => S.tipo === 'mes' ? S.ym : S.ym.slice(0, 4);
+function csv() {
+  const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const filas = [['Fecha', 'Tipo', 'Concepto', 'Categoría', 'Forma de pago', 'Importe', 'Notas', 'Ticket']];
+  const mv = [...movimientos()].reverse();
+  mv.forEach(x => filas.push([x.fecha.split('-').reverse().join('/'), x.tipo === 'fijo' ? 'Fijo' : 'Variable', x.concepto, x.categoria, x.metodo,
+    (+x.importe).toFixed(2).replace('.', ','), x.tipo === 'fijo' ? '' : x.notas, x.foto ? 'Sí' : 'No']));
+  filas.push(['', '', 'TOTAL', '', '', suma(mv).toFixed(2).replace('.', ','), '', '']);
+  // BOM + punto y coma para que Excel en español lo abra bien
+  return '﻿' + filas.map(f => f.map(q).join(';')).join('\r\n');
+}
+$('#btnCSV').onclick = () => descargar(`gastos_${nombrePeriodo()}.csv`, csv(), 'text/csv;charset=utf-8');
+$('#btnShare').onclick = async () => {
+  const file = new File([csv()], `gastos_${nombrePeriodo()}.csv`, { type: 'text/csv' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: 'Gastos ' + etiquetaPeriodo() }); } catch (e) { /* cancelado */ }
+  } else { descargar(file.name, file); toast('Tu navegador no permite compartir: se ha descargado'); }
+};
+$('#btnPDF').onclick = () => {
+  const mv = [...movimientos()].reverse(), fotos = $('#pdfFotos').checked ? mv.filter(x => x.foto) : [];
+  const cats = {}; mv.forEach(x => cats[x.categoria] = (cats[x.categoria] || 0) + (+x.importe || 0));
+  $('#print').innerHTML = `
+    <h1>Informe de gastos · ${esc(etiquetaPeriodo())}</h1>
+    <p>${esc(S.ajustes.nombre || '')} · Generado el ${new Date().toLocaleDateString('es-ES')}</p>
+    <p><b>Total: ${money(suma(mv))}</b> · Fijos: ${money(suma(mv.filter(x => x.tipo === 'fijo')))} · Variables: ${money(suma(mv.filter(x => x.tipo === 'variable')))}</p>
+    <table><thead><tr><th>Categoría</th><th class="n">Importe</th></tr></thead><tbody>
+    ${Object.entries(cats).sort((a, b) => b[1] - a[1]).map(([c, v]) => `<tr><td>${esc(c)}</td><td class="n">${money(v)}</td></tr>`).join('')}</tbody></table>
+    <table><thead><tr><th>Fecha</th><th>Concepto</th><th>Categoría</th><th>Pago</th><th>Tipo</th><th class="n">Importe</th></tr></thead><tbody>
+    ${mv.map(x => `<tr><td>${x.fecha.split('-').reverse().join('/')}</td><td>${esc(x.concepto)}${x.foto ? ' 🧾' : ''}</td><td>${esc(x.categoria)}</td><td>${esc(x.metodo)}</td><td>${x.tipo === 'fijo' ? 'Fijo' : 'Variable'}</td><td class="n">${money(x.importe)}</td></tr>`).join('')}
+    </tbody><tfoot><tr><th colspan="5">TOTAL</th><th class="n">${money(suma(mv))}</th></tr></tfoot></table>
+    ${fotos.length ? `<h2 style="break-before:page">Tickets</h2><div class="fotos">${fotos.map(x =>
+      `<figure><img src="${esc(x.foto)}"><figcaption>${x.fecha.split('-').reverse().join('/')} · ${esc(x.concepto)} · ${money(x.importe)}</figcaption></figure>`).join('')}</div>` : ''}`;
+  setTimeout(() => window.print(), 300);
+};
+// En modo servidor las fotos son URLs: se incrustan para que la copia sea autosuficiente
+async function aDataURL(src) {
+  if (!src || src.startsWith('data:')) return src;
+  const blob = await (await fetch(src)).blob();
+  return new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(blob); });
+}
+$('#btnBackup').onclick = async () => {
+  const gastos = await Promise.all(S.gastos.map(async g => ({ ...g, foto: await aDataURL(g.foto).catch(() => null) })));
+  const data = { app: 'control-gastos', version: 1, exportado: new Date().toISOString(), ajustes: S.ajustes, gastos, fijos: S.fijos };
+  descargar(`copia_gastos_${hoy()}.json`, JSON.stringify(data), 'application/json');
+};
+$('#btnImport').onclick = () => $('#fileImport').click();
+$('#fileImport').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try {
+    const d = JSON.parse(await f.text());
+    if (d.app !== 'control-gastos' || !Array.isArray(d.gastos) || !Array.isArray(d.fijos)) throw new Error('El archivo no es una copia válida');
+    if (!confirm(`Se importarán ${d.gastos.length} gastos y ${d.fijos.length} fijos. Los que ya existan se actualizarán. ¿Continuar?`)) return;
+    const merge = (cur, nuevos) => { const m = new Map(cur.map(x => [x.id, x])); nuevos.forEach(x => m.set(x.id, x)); return [...m.values()]; };
+    S.gastos = merge(S.gastos, d.gastos); S.fijos = merge(S.fijos, d.fijos);
+    if (d.ajustes) S.ajustes = { ...S.ajustes, ...d.ajustes };
+    for (const g of d.gastos) await dbPut('gastos', g);
+    for (const x of d.fijos) await dbPut('fijos', x);
+    await dbPut('kv', { id: 'ajustes', ...S.ajustes });
+    renderCategorias(); render(); toast('Copia importada');
+  } catch (err) { alert('No se pudo importar: ' + err.message); }
+};
+$('#btnApp').onclick = () => descargar('control-gastos.html', APP_SRC, 'text/html;charset=utf-8');
+$('#btnZip').onclick = () => { location.href = 'api/app.zip'; };
+if (ES_IOS) $('#btnApp').hidden = true; // un .html suelto no se puede abrir como app en iPhone
+function renderModo() {
+  if (servidor) {
+    const urls = servidor.direcciones.map(u => `<li><a href="${esc(u)}">${esc(u)}</a></li>`).join('');
+    $('#modoCard').innerHTML = `<h2>🟢 Servidor local activo</h2>
+      <p class="muted">Los gastos y las fotos se guardan en la carpeta <b>datos/</b> del equipo donde se ejecuta el servidor, no en el navegador. Cada día se guarda una copia automática en <b>datos/copias/</b>.</p>
+      ${urls ? `<p class="muted" style="margin-bottom:0">Para usarla desde el móvil (conectado a la misma Wi-Fi) abre:</p><ul style="margin-top:4px">${urls}</ul>` : ''}`;
+    $('#btnZip').hidden = false;
+  } else {
+    $('#modoCard').innerHTML = `<h2>📱 Tus datos están en este dispositivo</h2>
+      <p class="muted" style="margin:0">Los gastos y las fotos se guardan solo aquí; nadie más los ve. Haz de vez en cuando una <b>copia de seguridad</b> (más abajo) por si cambias de móvil o borras el navegador.</p>`;
+    if (location.protocol === 'https:') {
+      const url = location.origin + location.pathname, texto = 'Te paso esta app para controlar tus gastos (gratis, sin registro, los datos se quedan en tu móvil). Ábrela y en Safari pulsa Compartir → "Añadir a pantalla de inicio": ';
+      $('#compartirEnlace').hidden = false;
+      $('#btnWhatsApp').href = 'https://wa.me/?text=' + encodeURIComponent(texto + url);
+      $('#btnLink').onclick = async () => {
+        if (navigator.share) { try { await navigator.share({ title: 'Control de Gastos', text: texto, url }); } catch (e) { /* cancelado */ } }
+        else { try { await navigator.clipboard.writeText(url); toast('Enlace copiado'); } catch (e) { prompt('Copia este enlace:', url); } }
+      };
+    }
+  }
+}
+// En iPhone, si no está instalada, Safari puede borrar los datos tras semanas sin uso: se avisa para instalarla
+function avisoInstalar() {
+  let oculto = false;
+  try { oculto = localStorage.getItem('avisoInstalar') === 'no'; } catch (e) { /* sin localStorage */ }
+  if (!ES_IOS || INSTALADA || servidor || oculto || !location.protocol.startsWith('http')) return;
+  const d = document.createElement('div');
+  d.className = 'banner';
+  d.innerHTML = '<button aria-label="Cerrar">×</button>📲 <b>Instálala en tu iPhone:</b> pulsa el botón <b>Compartir</b> de Safari (el cuadrado con la flecha hacia arriba) y elige <b>“Añadir a pantalla de inicio”</b>. Así se abre como una app, funciona sin internet y tus datos no se borran.';
+  d.querySelector('button').onclick = () => { d.remove(); try { localStorage.setItem('avisoInstalar', 'no'); } catch (e) { /* sin localStorage */ } };
+  $('#aviso').append(d);
+}
+
+// ---------- Ajustes ----------
+$('#btnAjustes').onclick = () => {
+  const cats = $('#ajCats').value.split(',').map(s => s.trim()).filter(Boolean);
+  S.ajustes = { nombre: $('#ajNombre').value.trim(), presupuesto: parseFloat($('#ajPresu').value) || 0, categorias: cats.length ? [...new Set(cats)] : CATS_DEF };
+  dbPut('kv', { id: 'ajustes', ...S.ajustes }); renderCategorias(); render(); toast('Ajustes guardados');
+};
+$('#btnBorrar').onclick = async () => {
+  if (!confirm('Se borrarán TODOS los gastos, fijos y fotos de este dispositivo. ¿Seguro?')) return;
+  if (prompt('Escribe BORRAR para confirmar') !== 'BORRAR') return;
+  try { await borrarTodo(); } catch (e) { return toast('Error al borrar: ' + e.message); }
+  S.gastos = []; S.fijos = []; render(); toast('Datos borrados');
+};
+
+// ---------- Navegación ----------
+$$('nav button').forEach(b => b.onclick = () => {
+  $$('nav button').forEach(x => x.classList.toggle('on', x === b));
+  $$('main section').forEach(s => s.classList.toggle('on', s.id === b.dataset.tab));
+  window.scrollTo(0, 0);
+});
+function mover(d) {
+  const [y, m] = S.ym.split('-').map(Number);
+  const dt = S.tipo === 'mes' ? new Date(y, m - 1 + d, 1) : new Date(y + d, m - 1, 1);
+  S.ym = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}`; render();
+}
+$('#prev').onclick = () => mover(-1);
+$('#next').onclick = () => mover(1);
+$('#perTipo').onchange = e => { S.tipo = e.target.value; render(); };
+$('#perMes').onchange = e => { if (e.target.value) { S.ym = e.target.value; render(); } };
+$('#buscar').oninput = renderLista; $('#filtroCat').onchange = renderLista; $('#filtroTipo').onchange = renderLista;
+$('#fab').onclick = () => abrirGasto();
+$$('[data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
+document.addEventListener('click', e => {
+  const ver = e.target.closest('[data-ver]');
+  if (ver) { e.stopPropagation(); return verFoto(ver.dataset.ver); }
+  const v = e.target.closest('[data-variable]'); if (v) return abrirGasto(v.dataset.variable);
+  const f = e.target.closest('[data-fijo]'); if (f) return abrirFijo(f.dataset.fijo);
+});
+
+// ---------- Inicio ----------
+(async () => {
+  if (location.protocol.startsWith('http')) {
+    try { const r = await fetch('api/estado'); const e = r.ok && await r.json(); if (e && e.app === 'control-gastos') servidor = e; } catch (e) { /* sin servidor */ }
+  }
+  try {
+    let aj;
+    if (servidor) {
+      const d = await api('GET', 'datos');
+      S.gastos = d.gastos; S.fijos = d.fijos; aj = d.ajustes;
+    } else {
+      db = await openDB();
+      S.gastos = await dbAll('gastos');
+      S.fijos = await dbAll('fijos');
+      aj = (await dbAll('kv')).find(x => x.id === 'ajustes');
+      if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+    }
+    if (aj) { delete aj.id; S.ajustes = { ...S.ajustes, ...aj }; }
+  } catch (e) {
+    $('#aviso').innerHTML = servidor
+      ? `<div class="banner">⚠️ No se pudieron cargar los datos del servidor (${esc(e.message)}). Comprueba que sigue en marcha y recarga.</div>`
+      : '<div class="banner">⚠️ Este navegador no permite guardar datos (modo privado?). Lo que añadas se perderá al cerrar. Exporta una copia antes de salir.</div>';
+  }
+  // Instalable como app (pantalla de inicio) y disponible sin conexión cuando se sirve por http(s)
+  if (location.protocol.startsWith('http')) {
+    const l = document.createElement('link'); l.rel = 'manifest'; l.href = 'manifest.json'; document.head.append(l);
+    if ('serviceWorker' in navigator && isSecureContext) navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+  renderModo(); renderCategorias(); render(); avisoInstalar();
+})();
+</script>
+</body>
+</html>
